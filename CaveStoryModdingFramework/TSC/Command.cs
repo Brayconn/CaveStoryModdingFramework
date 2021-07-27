@@ -70,6 +70,7 @@ namespace CaveStoryModdingFramework.TSC
         public Argument(string name, int argLen) : this(name, argLen, ArgumentTypes.Number, DefaultSeparator) { }
         public Argument(ArgumentTypes arg, string separator) : this(arg.ToString(), DefaultArgumentLength, arg, separator) { }
         public Argument(string name, ArgumentTypes arg, string separator) : this(name, DefaultArgumentLength, arg, separator) { }
+        public Argument(string name, int argLen, string separator) : this(name, argLen, ArgumentTypes.Number, separator) { }
         public Argument(string name, int argLen, ArgumentTypes arg, string separator = DefaultSeparator)
         {
             Name = name;
