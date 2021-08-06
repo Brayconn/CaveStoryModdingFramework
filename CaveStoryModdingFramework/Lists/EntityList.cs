@@ -16,16 +16,23 @@ namespace CaveStoryModdingFramework.Entities
         public Rectangle SpriteLocation { get; set; }
 
         public string Category { get; set; }
+
+        public bool SetsFlagWhenKilledByPlayer { get; set; } = true;
         
         public EntityInfo()
         {
 
         }
-        public EntityInfo(string name, Rectangle spriteLocation, string category = "")
+        public EntityInfo(string name, Rectangle spriteLocation, bool setsFlagOnDeath) : this(name,spriteLocation,"", setsFlagOnDeath)
+        {
+
+        }
+        public EntityInfo(string name, Rectangle spriteLocation, string category = "", bool setsFlagOnDeath = true)
         {
             Name = name;
             Category = category;
             SpriteLocation = spriteLocation;
+            SetsFlagWhenKilledByPlayer = setsFlagOnDeath;
         }
 
         public XmlSchema GetSchema() => null;
@@ -36,6 +43,7 @@ namespace CaveStoryModdingFramework.Entities
             SpriteLocation = RectExtensions.RectFromString(reader.GetAttribute("Rect"));
             if (reader.MoveToAttribute(nameof(Category)))
                 Category = reader.GetAttribute(nameof(Category));
+            SetsFlagWhenKilledByPlayer = bool.Parse(reader.GetAttribute(nameof(SetsFlagWhenKilledByPlayer)));
         }
         
         public void WriteXml(XmlWriter writer)
@@ -44,6 +52,7 @@ namespace CaveStoryModdingFramework.Entities
             writer.WriteAttributeString("Rect", RectExtensions.RectToString(SpriteLocation));
             if (!string.IsNullOrWhiteSpace(Category))
                 writer.WriteAttributeString(nameof(Category), Category);
+            writer.WriteAttributeString(nameof(SetsFlagWhenKilledByPlayer), SetsFlagWhenKilledByPlayer.ToString());
         }
     }
 
@@ -86,7 +95,7 @@ namespace CaveStoryModdingFramework.Entities
             {32,new EntityInfo("Life Capsule",new Rectangle(32,96,16,16))},
             {33,new EntityInfo("Balrog energy ball bouncing (projectile)",new Rectangle(240,80,16,16))},
             {34,new EntityInfo("Bed",new Rectangle(192,48,32,16))},
-            {35,new EntityInfo("Mannan (enemy)",new Rectangle(96,64,24,32))},
+            {35,new EntityInfo("Mannan (enemy)",new Rectangle(96,64,24,32),false)},
             {36,new EntityInfo("Balrog, Flying (boss)",new Rectangle(0,0,40,24))},
             {37,new EntityInfo("Signpost",new Rectangle(192,64,16,16))},
             {38,new EntityInfo("Fireplace",new Rectangle(128,64,16,16))},
@@ -251,7 +260,7 @@ namespace CaveStoryModdingFramework.Entities
             {197,new EntityInfo("Porcupine Fish (enemy)",new Rectangle(0,0,16,16))},
             {198,new EntityInfo("IronHead red ring (projectile)",new Rectangle(240,46,-35,25))},
             {199,new EntityInfo("Underwater current, visual",new Rectangle(224,50,16,14))},
-            {200,new EntityInfo("Dragon Zombie (enemy)",new Rectangle(0,0,40,40))},
+            {200,new EntityInfo("Dragon Zombie (enemy)",new Rectangle(0,0,40,40), false)},
             {201,new EntityInfo("Dragon Zombie, dead",new Rectangle(200,20,42,16))},
             {202,new EntityInfo("Dragon Zombie fire (projectile)",new Rectangle(182,216,18,23))},
             {203,new EntityInfo("Critter, Hopping Aqua (enemy)",new Rectangle(0,80,16,16))},
