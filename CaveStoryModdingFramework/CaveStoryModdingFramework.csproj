@@ -47,6 +47,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="290.cs" />
+    <Compile Include="Analysis.cs" />
     <Compile Include="Lists\BulletList.cs" />
     <Compile Include="Lists\SurfaceList.cs" />
     <Compile Include="Utilities\AssetManager.cs" />
