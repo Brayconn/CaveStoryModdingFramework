@@ -178,11 +178,11 @@ namespace CaveStoryModdingFramework
                 }
             }
         }
-        public bool TryGetFile(SearchLocations folder, string name, Extension extension, out string path)
+        public bool TryGetFile(SearchLocations folder, string name, Extension extension, out string path, bool caseSensitive = false)
         {
-            return TryGetFile(folder, Prefixes.None, name, extension, out path);
+            return TryGetFile(folder, Prefixes.None, name, extension, out path, caseSensitive);
         }
-        public bool TryGetFile(SearchLocations folder, Prefixes prefix, string name, Extension extension, out string path)
+        public bool TryGetFile(SearchLocations folder, Prefixes prefix, string name, Extension extension, out string path, bool caseSensitive = false)
         {
             if (!TryGetList(folder, out var list))
             {
@@ -199,7 +199,8 @@ namespace CaveStoryModdingFramework
                     //TODO this can probably be made much simpler since we really should only ever get one result?
                     foreach (var file in dir.EnumerateFiles(name))
                     {
-                        if (file.Name == name)
+                        //TODO not sure if this is the best way to do case insensitivity...
+                        if (caseSensitive ? file.Name == name : file.Name.ToLower() == name.ToLower())
                         {
                             path = file.FullName;
                             return true;
@@ -211,13 +212,13 @@ namespace CaveStoryModdingFramework
             return false;
         }
 
-        public string GetFile(SearchLocations folder, string name, Extension extension)
+        public string GetFile(SearchLocations folder, string name, Extension extension, bool caseSensitive = false)
         {
             return GetFile(folder, Prefixes.None, name, extension);
         }
-        public string GetFile(SearchLocations folder, Prefixes prefix, string name, Extension extension)
+        public string GetFile(SearchLocations folder, Prefixes prefix, string name, Extension extension, bool caseSensitive = false)
         {
-            if(TryGetFile(folder,prefix,name,extension,out string path))
+            if(TryGetFile(folder,prefix,name,extension,out string path, caseSensitive))
             {
                 return path;
             }
