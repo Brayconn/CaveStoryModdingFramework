@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace CaveStoryModdingFramework
 {
@@ -58,7 +59,7 @@ namespace CaveStoryModdingFramework
             return bits;
         }
 
-        static string GetEntityName(Entity ent, IDictionary<int, EntityInfo> infos)
+        static string GetEntityName<T>(Entity ent, T infos) where T : IDictionary<int, EntityInfo>
         {
             if (infos.TryGetValue(ent.Type, out var inf))
                 return inf.Name;
@@ -66,107 +67,116 @@ namespace CaveStoryModdingFramework
                 return "";
         }
 
-        //add flags from a TSC file
-        static void AddTSC<T>(Mod mod, string tscPath, T flagList, bool credits = false, IList<Entity> entities = null) where T : IList<FlagListEntry>
+        static string LoadTSC(string path, bool encrypted, byte defaultKey, Encoding encoding)
+        {
+            byte[] input = File.ReadAllBytes(path);
+            if (encrypted)
+                Encryptor.DecryptInPlace(input, defaultKey);
+            return encoding.GetString(input);
+        }
+
+        public static void AddCreditsTSC<F>(string tscPath, F flagList, bool encrypted, byte defaultKey, Encoding encoding) where F : IList<FlagListEntry>
         {
             string filename = Path.GetFileName(tscPath);
-            byte[] input = File.ReadAllBytes(tscPath);
-            if (mod.TSCEncrypted)
-                Encryptor.DecryptInPlace(input, mod.DefaultKey);
-            var text = mod.TSCEncoding.GetString(input);
+            var text = LoadTSC(tscPath, encrypted, defaultKey, encoding);
 
-            if (!credits)
+            var curreve = "N/A";
+            for (var index = 0; index < text.Length; index++)
             {
-                for (var index = text.IndexOf('<', 0); index != -1; index = text.IndexOf('<', index + 1))
+                switch (text[index])
                 {
-                    var eve = text.Substring(text.LastIndexOf('#', index), 5);
-                    var cmd = text.Substring(index, 4);
-                    int val;
-                    switch (cmd)
-                    {
-                        case "<FL+":
-                        case "<FL-":
-                        case "<FLJ":
-                            val = FlagConverter.FlagToRealValue(text.Substring(index + 4, 4), 4);
-                            flagList.Add(new FlagListEntry(val, FlagChangeSources.TSC, filename,
-                                cmd == "<FLJ" ? FlagChangeTypes.Read : FlagChangeTypes.Write)
-                            {
-                                TSCCommand = cmd,
-                                TSCEvent = eve,
-                            });
-                            break;
-                        case "<DNP" when entities != null:
-                        case "<DNA" when entities != null:
-                            val = FlagConverter.FlagToRealValue(text.Substring(index + 4, 4), 4);
-                            for (int i = 0; i < entities.Count; i++)
-                            {
-                                if ((cmd == "<DNP" ? entities[i].Event : entities[i].Type) == val)
-                                {
-                                    flagList.Add(new FlagListEntry(entities[i].Flag, FlagChangeSources.Both, filename, FlagChangeTypes.Write)
-                                    {
-                                        TSCCommand = cmd,
-                                        TSCEvent = eve,
-
-                                        EntityIndex = i,
-                                        EntityType = entities[i].Type,
-                                        EntityName = GetEntityName(entities[i], mod.EntityInfos),
-                                        EntityBits = GetRealEntityFlags(entities[i], mod.NPCTable),
-                                    });
-                                }
-                            }
-                            break;
-                    }
+                    //skip text
+                    case '[':
+                        index = text.IndexOf(']', index);
+                        //HACK I hate how this breaks the nice flow the rest of the code has
+                        if (index == -1)
+                            return;
+                        break;
+                    //l == # in credits
+                    case 'l':
+                        var l = text.Substring(index + 1, 4);
+                        if (char.IsDigit(l[0]) && char.IsDigit(l[1]) && char.IsDigit(l[2]) && char.IsDigit(l[3]))
+                            curreve = l;
+                        index += 4;
+                        break;
+                    //f == FLJ in credits
+                    case 'f':
+                        flagList.Add(new FlagListEntry(FlagConverter.FlagToRealValue(text.Substring(index + 1, 4), 4), FlagChangeSources.TSC, filename, FlagChangeTypes.Read)
+                        {
+                            TSCCommand = "<FLJ",
+                            TSCEvent = curreve
+                        });
+                        //$"<FLJ {Path.GetFileName(tscPath)} event #{curreve}");
+                        index += 4;
+                        break;
                 }
             }
-            else
+        }
+        public static void AddTSC<F>(string tscPath, F flagList, bool encrypted, byte defaultKey, Encoding encoding) where F : IList<FlagListEntry>
+        {
+            AddTSC<F,IList<Entity>,IList<NPCTableEntry>,IDictionary<int,EntityInfo>>(tscPath, flagList, encrypted, defaultKey, encoding, null, null, null);
+        }
+        public static void AddTSC<F,P,N,E>(string tscPath, F flagList, bool encrypted, byte defaultKey, Encoding encoding, P entities, N npcTable, E entityInfos)
+            where F : IList<FlagListEntry> where P : IList<Entity> where N : IList<NPCTableEntry> where E : IDictionary<int,EntityInfo>
+        {
+            string filename = Path.GetFileName(tscPath);
+            var text = LoadTSC(tscPath, encrypted, defaultKey, encoding);
+
+            for (var index = text.IndexOf('<', 0); index != -1; index = text.IndexOf('<', index + 1))
             {
-                var curreve = "N/A";
-                for (var index = 0; index < text.Length; index++)
+                var eve = text.Substring(text.LastIndexOf('#', index), 5);
+                var cmd = text.Substring(index, 4);
+                int val;
+                switch (cmd)
                 {
-                    switch (text[index])
-                    {
-                        //skip text
-                        case '[':
-                            index = text.IndexOf(']', index);
-                            //HACK I hate how this breaks the nice flow the rest of the code has
-                            if (index == -1)
-                                return;
-                            break;
-                        //l == # in credits
-                        case 'l':
-                            var l = text.Substring(index + 1, 4);
-                            if (char.IsDigit(l[0]) && char.IsDigit(l[1]) && char.IsDigit(l[2]) && char.IsDigit(l[3]))
-                                curreve = l;
-                            index += 4;
-                            break;
-                        //f == FLJ in credits
-                        case 'f':
-                            flagList.Add(new FlagListEntry(FlagConverter.FlagToRealValue(text.Substring(index + 1, 4), 4),FlagChangeSources.TSC, filename, FlagChangeTypes.Read)
+                    case "<FL+":
+                    case "<FL-":
+                    case "<FLJ":
+                        val = FlagConverter.FlagToRealValue(text.Substring(index + 4, 4), 4);
+                        flagList.Add(new FlagListEntry(val, FlagChangeSources.TSC, filename,
+                            cmd == "<FLJ" ? FlagChangeTypes.Read : FlagChangeTypes.Write)
+                        {
+                            TSCCommand = cmd,
+                            TSCEvent = eve,
+                        });
+                        break;
+                    case "<DNP" when entities != null:
+                    case "<DNA" when entities != null:
+                        val = FlagConverter.FlagToRealValue(text.Substring(index + 4, 4), 4);
+                        for (int i = 0; i < entities.Count; i++)
+                        {
+                            if ((cmd == "<DNP" ? entities[i].Event : entities[i].Type) == val)
                             {
-                                TSCCommand = "<FLJ",
-                                TSCEvent = curreve
-                            });
-                            //$"<FLJ {Path.GetFileName(tscPath)} event #{curreve}");
-                            index += 4;
-                            break;
-                    }
+                                flagList.Add(new FlagListEntry(entities[i].Flag, FlagChangeSources.Both, filename, FlagChangeTypes.Write)
+                                {
+                                    TSCCommand = cmd,
+                                    TSCEvent = eve,
+
+                                    EntityIndex = i,
+                                    EntityType = entities[i].Type,
+                                    EntityName = GetEntityName(entities[i], entityInfos),
+                                    EntityBits = GetRealEntityFlags(entities[i], npcTable),
+                                });
+                            }
+                        }
+                        break;
                 }
             }
         }
 
         //Add flags from a PXE file
-        static List<Entity> AddPXE<T>(Mod mod, string pxePath, T flagList, EntityFlags readWhitelist, EntityFlags writeBlacklist) where T : IList<FlagListEntry>
+        public static List<Entity> AddPXE<F,N,E>(string pxePath, F flagList, EntityFlags readWhitelist, EntityFlags writeBlacklist, N npcTable, E entityInfo) where F : IList<FlagListEntry> where N : IList<NPCTableEntry> where E : IDictionary<int, EntityInfo>
         {
             string filename = Path.GetFileName(pxePath);
             var pxe = PXE.Read(pxePath);
             for (var i = 0; i < pxe.Count; i++)
             {
-                var actualBits = GetRealEntityFlags(pxe[i], mod.NPCTable);
+                var actualBits = GetRealEntityFlags(pxe[i], npcTable);
 
                 //by default, every entity sets its flag on death...
                 FlagChangeTypes changeType = FlagChangeTypes.Write;
                 //...but some (such as Gaudi) are special and don't...
-                if ((mod.EntityInfos.TryGetValue(pxe[i].Type, out var inf) && !inf.SetsFlagWhenKilledByPlayer)
+                if ((entityInfo.TryGetValue(pxe[i].Type, out var inf) && !inf.SetsFlagWhenKilledByPlayer)
                     //...and certain bits (such as RunEventOnDeath) make it so the flag won't be set
                     || (actualBits & writeBlacklist) != 0)
                 {
@@ -177,14 +187,17 @@ namespace CaveStoryModdingFramework
                 {
                     changeType |= FlagChangeTypes.Read;
                 }
-
-                flagList.Add(new FlagListEntry(pxe[i].Flag, FlagChangeSources.Entity, filename, changeType)
+                //if the flag actually matters, add it!
+                if(changeType != 0)
                 {
-                    EntityIndex = i,
-                    EntityType = pxe[i].Type,
-                    EntityName = GetEntityName(pxe[i], mod.EntityInfos),
-                    EntityBits = actualBits,
-                });
+                    flagList.Add(new FlagListEntry(pxe[i].Flag, FlagChangeSources.Entity, filename, changeType)
+                    {
+                        EntityIndex = i,
+                        EntityType = pxe[i].Type,
+                        EntityName = GetEntityName(pxe[i], entityInfo),
+                        EntityBits = actualBits,
+                    });
+                }
             }
             return pxe;
         }
@@ -196,17 +209,22 @@ namespace CaveStoryModdingFramework
 
             //global tsc files
             foreach (var tsc in mod.FolderPaths.EnumerateFiles(SearchLocations.Data, Extension.Script))
-                AddTSC(mod, tsc, flagList, tsc.Contains("Credit"));
+            {
+                if (tsc.Contains("Credit"))
+                    AddCreditsTSC(tsc, flagList, mod.TSCEncrypted, mod.DefaultKey, mod.TSCEncoding);
+                else
+                    AddTSC(tsc, flagList, mod.TSCEncrypted, mod.DefaultKey, mod.TSCEncoding);
+            }
 
             //stage table
             foreach (var entry in mod.StageTable)
             {
                 List<Entity> ents = null;
                 if(mod.FolderPaths.TryGetFile(SearchLocations.Stage, entry.Filename, Extension.EntityData, out string pxePath))
-                    ents = AddPXE(mod, pxePath, flagList, EntityFlags.AppearWhenFlagSet | EntityFlags.HideWhenFlagSet, EntityFlags.RunEventWhenKilled | EntityFlags.Invulnerable);
+                    ents = AddPXE(pxePath, flagList, EntityFlags.AppearWhenFlagSet | EntityFlags.HideWhenFlagSet, EntityFlags.RunEventWhenKilled | EntityFlags.Invulnerable, mod.NPCTable, mod.EntityInfos);
 
                 if(mod.FolderPaths.TryGetFile(SearchLocations.Stage, entry.Filename, Extension.Script, out string tscPath))
-                    AddTSC(mod, tscPath, flagList, false, ents);
+                    AddTSC(tscPath, flagList, mod.TSCEncrypted, mod.DefaultKey, mod.TSCEncoding, ents, mod.NPCTable, mod.EntityInfos);
             }
             return flagList;
         }
@@ -221,7 +239,17 @@ namespace CaveStoryModdingFramework
 
                 //body
                 foreach(var item in flagList)
-                    sw.WriteLine(string.Join(delimString, item.Flag, item.Source, item.Filename, item.Type, item.TSCEvent, item.TSCCommand, item.EntityIndex, item.EntityType, item.EntityName, item.EntityBits));
+                    sw.WriteLine(string.Join(delimString,
+                        //Base
+                        item.Flag, item.Source, item.Filename, item.Type != 0 ? item.Type.ToString() : "",
+                        //TSC
+                        item.TSCEvent,
+                        item.TSCCommand,
+                        //Entity
+                        item.EntityIndex >= 0 ? item.EntityIndex.ToString() : "",
+                        item.EntityType >= 0 ? item.EntityType.ToString() : "",
+                        item.EntityName,
+                        item.EntityBits != EntityFlags.None ? item.EntityBits.ToString() : ""));
             }
         }
 
