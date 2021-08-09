@@ -14,15 +14,23 @@ namespace CaveStoryModdingFramework
         public enum FlagChangeSources
         {
             TSC = 1,
-            Entity,
+            Entity = 2,
             Both = TSC | Entity
         }
         [Flags]
         public enum FlagChangeTypes
         {
+            None = 0,
             Read = 1,
-            Write,
+            Write = 2,
             //Both = Read | Write //removed this because I want ToString to actually return "Read | Write"
+        }
+        [Flags]
+        public enum FlagEntryWarnings
+        {
+            SpecialEntityNoWriteFlag = 1,
+            ReadFlag0 = 2,
+            RunEventNoWriteFlag = 4,
         }
         //Nested type
 #pragma warning disable CA1034
@@ -41,6 +49,8 @@ namespace CaveStoryModdingFramework
             public int EntityType { get; set; } = -1;
             public string EntityName { get; set; } = null;
             public EntityFlags EntityBits { get; set; } = 0;
+
+            public FlagEntryWarnings EntityOversightWarning { get; set; } = 0;
 
             public FlagListEntry(int flag, FlagChangeSources source, string filename, FlagChangeTypes type)
             {
@@ -165,7 +175,8 @@ namespace CaveStoryModdingFramework
         }
 
         //Add flags from a PXE file
-        public static List<Entity> AddPXE<F,N,E>(string pxePath, F flagList, EntityFlags readWhitelist, EntityFlags writeBlacklist, N npcTable, E entityInfo) where F : IList<FlagListEntry> where N : IList<NPCTableEntry> where E : IDictionary<int, EntityInfo>
+        public static List<Entity> AddPXE<F,N,E>(string pxePath, F flagList, EntityFlags readWhitelist, EntityFlags writeWhitelist, EntityFlags writeBlacklist, N npcTable, E entityInfo)
+            where F : IList<FlagListEntry> where N : IList<NPCTableEntry> where E : IDictionary<int, EntityInfo>
         {
             string filename = Path.GetFileName(pxePath);
             var pxe = PXE.Read(pxePath);
@@ -173,29 +184,62 @@ namespace CaveStoryModdingFramework
             {
                 var actualBits = GetRealEntityFlags(pxe[i], npcTable);
 
-                //by default, every entity sets its flag on death...
-                FlagChangeTypes changeType = FlagChangeTypes.Write;
-                //...but some (such as Gaudi) are special and don't...
-                if ((entityInfo.TryGetValue(pxe[i].Type, out var inf) && !inf.SetsFlagWhenKilledByPlayer)
-                    //...and certain bits (such as RunEventOnDeath) make it so the flag won't be set
-                    || (actualBits & writeBlacklist) != 0)
+                FlagChangeTypes changeType = 0;
+                //every entity sets its flag when killed by the player,
+                //but only entities with certain bits can actually be killed
+                //in addition, certain bits will prevent the entity from setting its flag on death
+                //thus, the whitelist should have things like "shootable"
+                //while the blacklist has things like "run event on death"
+                if((actualBits & writeWhitelist) != 0 && (actualBits & writeBlacklist) == 0)
                 {
-                    changeType &= ~FlagChangeTypes.Write;
+                    changeType |= FlagChangeTypes.Write;
                 }
-                //plus, only certain flags make the flag get read
+                //only certain flags make the flag get read
                 if ((actualBits & readWhitelist) != 0)
                 {
                     changeType |= FlagChangeTypes.Read;
                 }
-                //if the flag actually matters, add it!
-                if(changeType != 0)
+                //if we've determined that this entity actually uses its flag add it!
+                if(changeType != FlagChangeTypes.None)
                 {
+                    bool entityException = entityInfo.TryGetValue(pxe[i].Type, out var inf) && !inf.SetsFlagWhenKilledByPlayer;
+                    FlagEntryWarnings oversights = 0;
+
+                    //TODO hardcoded flag 0 in a bunch of places here
+
+                    //trying to write, but the entity has an exception in the list
+                    if((changeType & FlagChangeTypes.Write) != 0 && entityException)
+                    {
+                        //that's an oversight if the flag isn't 0
+                        if(pxe[i].Flag != 0)
+                            oversights |= FlagEntryWarnings.SpecialEntityNoWriteFlag;
+                        //the write will fail no matter what
+                        changeType &= ~FlagChangeTypes.Write;
+                    }
+                    //trying to read flag 0
+                    if((changeType & FlagChangeTypes.Read) != 0 && pxe[i].Flag == 0)
+                    {
+                        oversights |= FlagEntryWarnings.ReadFlag0;
+                    }
+                    //run event on killed will make
+                    if((changeType & FlagChangeTypes.Read) == 0 && (actualBits & EntityFlags.RunEventWhenKilled) != 0 && pxe[i].Flag != 0)
+                    {
+                        oversights |= FlagEntryWarnings.RunEventNoWriteFlag;
+                    }
+
+                    EntityFlags filterBits = 0;
+                    if ((changeType & FlagChangeTypes.Read) != 0)
+                        filterBits |= readWhitelist;
+                    if ((changeType & FlagChangeTypes.Write) != 0)
+                        filterBits |= writeWhitelist;
+
                     flagList.Add(new FlagListEntry(pxe[i].Flag, FlagChangeSources.Entity, filename, changeType)
                     {
                         EntityIndex = i,
                         EntityType = pxe[i].Type,
                         EntityName = GetEntityName(pxe[i], entityInfo),
-                        EntityBits = actualBits,
+                        EntityBits = actualBits & filterBits,
+                        EntityOversightWarning = oversights,
                     });
                 }
             }
@@ -221,7 +265,7 @@ namespace CaveStoryModdingFramework
             {
                 List<Entity> ents = null;
                 if(mod.FolderPaths.TryGetFile(SearchLocations.Stage, entry.Filename, Extension.EntityData, out string pxePath))
-                    ents = AddPXE(pxePath, flagList, EntityFlags.AppearWhenFlagSet | EntityFlags.HideWhenFlagSet, EntityFlags.RunEventWhenKilled | EntityFlags.Invulnerable, mod.NPCTable, mod.EntityInfos);
+                    ents = AddPXE(pxePath, flagList, EntityFlags.AppearWhenFlagSet | EntityFlags.HideWhenFlagSet, EntityFlags.Shootable, EntityFlags.RunEventWhenKilled | EntityFlags.Invulnerable, mod.NPCTable, mod.EntityInfos);
 
                 if(mod.FolderPaths.TryGetFile(SearchLocations.Stage, entry.Filename, Extension.Script, out string tscPath))
                     AddTSC(tscPath, flagList, mod.TSCEncrypted, mod.DefaultKey, mod.TSCEncoding, ents, mod.NPCTable, mod.EntityInfos);
@@ -235,7 +279,7 @@ namespace CaveStoryModdingFramework
             using(var sw = new StreamWriter(path))
             {
                 //header
-                sw.WriteLine(string.Join(delimString, "Flag", "Source", "Filename", "Type", "TSC Event", "TSC Command", "Entity Index", "Entity Type", "Entity Name", "Entity Bits"));
+                sw.WriteLine(string.Join(delimString, "Flag", "Source", "Filename", "Type", "TSC Event", "TSC Command", "Entity Index", "Entity Type", "Entity Name", "Entity Bits", "Entity Oversight Warning"));
 
                 //body
                 foreach(var item in flagList)
@@ -249,46 +293,95 @@ namespace CaveStoryModdingFramework
                         item.EntityIndex >= 0 ? item.EntityIndex.ToString() : "",
                         item.EntityType >= 0 ? item.EntityType.ToString() : "",
                         item.EntityName,
-                        item.EntityBits != EntityFlags.None ? item.EntityBits.ToString() : ""));
+                        item.EntityBits != EntityFlags.None ? item.EntityBits.ToString() : "",
+                        item.EntityOversightWarning != 0 ? item.EntityOversightWarning.ToString() : ""));
             }
         }
 
-        public static void WriteFlagListToText<T>(T flagList, string path, bool showWriteOnly = false) where T : IEnumerable<FlagListEntry>
+        public static void WriteFlagListToText<T>(T flagList, string path, bool showWriteOnly = false) where T : IList<FlagListEntry>
         {
             HashSet<int> flagRead = new HashSet<int>();
-            SortedDictionary<int, List<string>> tree = new SortedDictionary<int, List<string>>();
-            foreach(var item in flagList)
+            SortedDictionary<int, List<FlagListEntry>> tree = new SortedDictionary<int, List<FlagListEntry>>();
+
+            //build the tree
+            foreach (var item in flagList)
             {
                 if (!tree.ContainsKey(item.Flag))
-                    tree.Add(item.Flag, new List<string>());
-                switch(item.Source)
-                {
-                    case FlagChangeSources.Both:
-                        tree[item.Flag].Add($"{item.Type} - {item.TSCCommand} {item.Filename} event {item.TSCEvent} deletes entity {item.EntityIndex} (Type {item.EntityType} - {item.EntityName})");
-                        break;
-                    case FlagChangeSources.TSC:
-                        tree[item.Flag].Add($"{item.Type} - {item.TSCCommand} {item.Filename} event {item.TSCEvent}");
-                        break;
-                    case FlagChangeSources.Entity:
-                        tree[item.Flag].Add($"{item.Type} - {item.EntityBits} {item.Filename} entity {item.EntityIndex} (Type {item.EntityType} - {item.EntityName})");
-                        break;
-                }
-                if (item.Type == FlagChangeTypes.Read && !flagRead.Contains(item.Flag))
+                    tree.Add(item.Flag, new List<FlagListEntry>());
+
+                tree[item.Flag].Add(item);
+
+                //add this item's flag to the list of flags that get read
+                if ((item.EntityOversightWarning != 0 || item.Type == FlagChangeTypes.Read) && !flagRead.Contains(item.Flag))
                     flagRead.Add(item.Flag);
             }
+
+            List<Tuple<string,int>> warnings = new List<Tuple<string,int>>();
+            int lineNum = 1;
+            foreach (var flag in tree)
+            {
+                lineNum++;
+                foreach (var entry in flag.Value)
+                {
+                    lineNum++;
+                    if(entry.EntityOversightWarning != 0)
+                    {                        
+                        if((entry.EntityOversightWarning & FlagEntryWarnings.SpecialEntityNoWriteFlag) != 0)
+                        {
+                            //trying to write a flag on an entity that can't
+                            warnings.Add(new Tuple<string, int>($"Entity {entry.EntityIndex} on {entry.Filename} is trying to write a flag," +
+                                $" but its entity type ({entry.EntityType} - {entry.EntityName}) won't automatically set its flag on death!", lineNum));
+                        }
+                        if ((entry.EntityOversightWarning & FlagEntryWarnings.ReadFlag0) != 0)
+                        {
+                            //trying to read flag 0
+                            warnings.Add(new Tuple<string, int>($"Entity {entry.EntityIndex} on {entry.Filename} is trying to read flag 0!", lineNum));
+                        }
+                        if((entry.EntityOversightWarning & FlagEntryWarnings.RunEventNoWriteFlag) != 0)
+                        {
+                            warnings.Add(new Tuple<string, int>($"Entity {entry.EntityIndex} on {entry.Filename} has the bit \"{EntityFlags.RunEventWhenKilled}\" set," +
+                                $" which will prevent it from writing its flag; moreover, the entity is not reading its flag ({entry.Flag})!", lineNum));
+                        }
+                        //TODO check for OOB flag write on an entity
+                    }
+                }
+            }            
             if(!showWriteOnly)
+                //remove anything that isn't being read
                 foreach (var key in tree.Keys.ToArray())
                     if(!flagRead.Contains(key))
                         tree.Remove(key);
+
             //save the file
             using (var sw = new StreamWriter(path))
             {
-                foreach (var item in tree)
+                if(warnings.Count > 0)
                 {
-                    sw.WriteLine("Flag " + item.Key);
-                    foreach (var str in item.Value)
+                    sw.WriteLine("Warnings");
+                    foreach(var warning in warnings)
                     {
-                        sw.WriteLine("\t" + str);
+                        sw.WriteLine($"\t{warning.Item1} - Line {warning.Item2 + warnings.Count}");
+                    }
+                }                
+                foreach (var flag in tree)
+                {
+                    sw.WriteLine("Flag " + flag.Key);
+                    foreach (var item in flag.Value)
+                    {
+                        sw.Write("\t");
+                        //add each entry
+                        switch (item.Source)
+                        {
+                            case FlagChangeSources.Both:
+                                sw.WriteLine($"{item.Type} - {item.TSCCommand} {item.Filename} event {item.TSCEvent} deletes entity {item.EntityIndex} (Type {item.EntityType} - {item.EntityName})");
+                                break;
+                            case FlagChangeSources.TSC:
+                                sw.WriteLine($"{item.Type} - {item.TSCCommand} {item.Filename} event {item.TSCEvent}");
+                                break;
+                            case FlagChangeSources.Entity:
+                                sw.WriteLine($"{item.Type} - {item.Filename} entity {item.EntityIndex} (Type {item.EntityType} - {item.EntityName}) {item.EntityBits}");
+                                break;
+                        }                        
                     }
                 }
             }
