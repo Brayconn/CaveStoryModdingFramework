@@ -1,8 +1,16 @@
-﻿using System;
+﻿//Microsoft.VisualBasic.FileIO.TextFieldParser is only available in .NET Core 3.0 and above (or .NET Framework 2.0 and above)
+#if NETFRAMEWORK || (NETCOREAPP && !(NETCOREAPP1_0 || NETCOREAPP1_1 || NETCOREAPP2_0 || NETCOREAPP2_1 || NETCOREAPP2_2))
+#define CAN_USE_TEXTFIELDPARSER
+#endif
+
+using System;
 using System.Collections.Generic;
 using System.IO;
-using Microsoft.VisualBasic.FileIO;
 using CaveStoryModdingFramework.TSC;
+#if CAN_USE_TEXTFIELDPARSER
+using Microsoft.VisualBasic.FileIO;
+#endif
+
 
 namespace CaveStoryModdingFramework.Compatability
 {
@@ -57,7 +65,8 @@ namespace CaveStoryModdingFramework.Compatability
                     output = new List<Command>(argCount);
                 else
                     output = new List<Command>();
-                
+
+#if CAN_USE_TEXTFIELDPARSER
                 //init the actual reader
                 using (var tfp = new TextFieldParser(sr)
                 {
@@ -84,6 +93,9 @@ namespace CaveStoryModdingFramework.Compatability
                         output.Add(cmd);
                     }
                 }
+#else
+                throw new NotSupportedException("Sorry, I haven't found another .csv reader :(");
+#endif
             }
             return output;
         }

@@ -15,7 +15,6 @@ namespace CaveStoryModdingFramework.Entities
         private int xp, damage;
         private NPCHitRect hitbox;
         private NPCViewRect viewbox;
-        [Editor(typeof(FlagEnumUIEditor), typeof(System.Drawing.Design.UITypeEditor))]
         public EntityFlags Bits { get => bits; set => SetVal(ref bits, value); }
         public ushort Life { get => life; set => SetVal(ref life, value); }
         

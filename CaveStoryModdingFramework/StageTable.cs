@@ -379,8 +379,12 @@ namespace CaveStoryModdingFramework.Stages
                     Spritesheet1Buffer = 0x20;
                     Spritesheet2Buffer = 0x20;
                     BossNumberType = typeof(sbyte);
-                    //stage.tbl is the only one that has japanese names
+#if NETCOREAPP
+                    //.NET Core will throw on the subsequent call to get Shift JIS if this isn't run
+                    Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+#endif
                     JapaneseNameEncoding = Encoding.GetEncoding(932); //Shift JIS
+                    //stage.tbl is the only one that has japanese names
                     JapaneseNameBuffer = type == StageTablePresets.stagetbl ? 0x20 : 0;
                     MapNameEncoding = Encoding.ASCII;
                     MapNameBuffer = 0x20;
@@ -582,7 +586,7 @@ namespace CaveStoryModdingFramework.Stages
 
     public static class StageTable
     {
-        #region constants
+#region constants
 
         public const string EXEFilter = "Executables (*.exe)|*.exe";
         public const string CSFilter = "Cave Story (Doukutsu.exe)|Doukutsu.exe";
@@ -627,9 +631,9 @@ namespace CaveStoryModdingFramework.Stages
 
         public const string MRMAPBIN = "mrmap.bin";
 
-        #endregion
+#endregion
 
-        #region section manipulation
+#region section manipulation
 
         public static bool TryDetectTableType(string path, out StageTablePresets type)
         {
@@ -709,7 +713,7 @@ namespace CaveStoryModdingFramework.Stages
             }
         }
 
-        #endregion
+#endregion
 
         public static int GetBufferSize(StageTableFormats format, int stageCount, StageEntrySettings settings)
         {
@@ -764,7 +768,7 @@ namespace CaveStoryModdingFramework.Stages
             return preset != StageTablePresets.custom;
         }
 
-        #region Reading
+#region Reading
         public static StageEntry ReadStage(this BinaryReader br, StageEntrySettings settings)
         {
             var s = new StageEntry()
@@ -848,9 +852,9 @@ namespace CaveStoryModdingFramework.Stages
                 }
             }
         }
-        #endregion
+#endregion
 
-        #region Writing
+#region Writing
         public static void WriteStages(this BinaryWriter bw, IEnumerable<StageEntry> table, StageEntrySettings settings)
         {
             foreach(var stage in table)
@@ -970,6 +974,6 @@ namespace CaveStoryModdingFramework.Stages
                 UpdateAddressList(r.MapNameReferences, startOfStageTable += (uint)Marshal.SizeOf(settings.BossNumberType));
             }
         }
-        #endregion
+#endregion
     }
 }

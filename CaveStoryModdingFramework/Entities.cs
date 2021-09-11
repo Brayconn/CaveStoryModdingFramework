@@ -44,7 +44,6 @@ namespace CaveStoryModdingFramework.Entities
         public short Flag { get => flag; set => SetVal(ref flag, value); }
         public short Event { get => @event; set => SetVal(ref @event, value); }
         public short Type { get => type; set => SetVal(ref type, value); }
-        [Editor(typeof(FlagEnumUIEditor), typeof(System.Drawing.Design.UITypeEditor))]
         public EntityFlags Bits { get => bits; set => SetVal(ref bits, value); }
 
         public Entity(Entity e) : this(e.X, e.Y, e.Flag, e.Event, e.Type, e.Bits) { }

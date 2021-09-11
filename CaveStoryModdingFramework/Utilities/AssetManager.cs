@@ -41,19 +41,16 @@ namespace CaveStoryModdingFramework
         /// <summary>
         /// Directories to be searched for Backgrounds, Global Scripts, and other misc. images
         /// </summary>
-        [Editor(StringEditorLocation, typeof(UITypeEditor))]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Content)]
         public List<string> DataPaths { get; set; } = new List<string>();
         /// <summary>
         /// Directories to be searched for Tile Data, Entity Data, and Tileset data/images
         /// </summary>
-        [Editor(StringEditorLocation, typeof(UITypeEditor))]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Content)]
         public List<string> StagePaths { get; set; } = new List<string>();
         /// <summary>
         /// Directories to be searched for Npc Spritesheets
         /// </summary>
-        [Editor(StringEditorLocation, typeof(UITypeEditor))]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Content)]
         public List<string> NpcPaths { get; set; } = new List<string>();
 

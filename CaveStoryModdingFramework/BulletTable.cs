@@ -82,7 +82,6 @@ namespace CaveStoryModdingFramework
         //Life_count
         public int Range { get => range; set => SetVal(ref range, value); }
 
-        [Editor(typeof(FlagEnumUIEditor), typeof(System.Drawing.Design.UITypeEditor))]
         public BulletFlags Bits { get => bits; set => SetVal(ref bits, value); }
         //EnemyXL
         public int EnemyHitboxWidth { get => enemyHitboxWidth; set => SetVal(ref enemyHitboxWidth, value); }
