@@ -873,7 +873,8 @@ namespace CaveStoryModdingFramework.Stages
             var size = StageTable.GetBufferSize(location.StageTableFormat, stages.Count, settings);
             //stop if we're about to write too much data
             if (location.MaximumSize > 0 && size > location.MaximumSize)
-                throw new ArgumentOutOfRangeException();
+                throw new Exception($"The current stage table export settings result in a stage table that is {size} bytes large, " +
+                    $"which is {size - location.MaximumSize} over the maximum allowed size {location.MaximumSize}!");
             var buffer = new byte[size];
 
             //if we're saving to an internal file, and need to go off of a section...
