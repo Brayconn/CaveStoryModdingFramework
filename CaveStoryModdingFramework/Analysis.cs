@@ -134,7 +134,10 @@ namespace CaveStoryModdingFramework
 
             for (var index = text.IndexOf('<', 0); index != -1; index = text.IndexOf('<', index + 1))
             {
-                var eve = text.Substring(text.LastIndexOf('#', index), 5);
+                var lastEventIndex = text.LastIndexOf('#', index);
+                var eve = "N/A";
+                if(lastEventIndex >= 0)
+                    eve = text.Substring(lastEventIndex, 5);
                 var cmd = text.Substring(index, 4);
                 int val;
                 switch (cmd)
