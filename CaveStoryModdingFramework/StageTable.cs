@@ -12,6 +12,7 @@ using System.Xml.Linq;
 using System.Xml;
 using System.Xml.Serialization;
 using System.Xml.Schema;
+using System.Diagnostics;
 
 namespace CaveStoryModdingFramework.Stages
 {
@@ -456,53 +457,43 @@ namespace CaveStoryModdingFramework.Stages
 
     public class StageTableReferences
     {
-        public List<long> TilesetReferences { get; set; } = new List<long>()
+        public List<long> TilesetReferences { get; set; } = new List<long>();
+        public List<long> FilenameReferences { get; set; } = new List<long>();
+        public List<long> BackgroundTypeReferences { get; set; } = new List<long>();
+        public List<long> BackgroundNameReferences { get; set; } = new List<long>();
+        public List<long> Spritesheet1References { get; set; } = new List<long>();
+        public List<long> Spritesheet2References { get; set; } = new List<long>();
+        public List<long> BossNumberReferences { get; set; } = new List<long>();
+        public List<long> JapaneseNameReferences { get; set; } = new List<long>();
+        public List<long> MapNameReferences { get; set; } = new List<long>();
+
+
+        public void ResetToDefault(StageTablePresets preset)
         {
-            //tileset?
-            0x020C2F,
-            0x020C73,
-        };
-        public List<long> FilenameReferences { get; set; } = new List<long>()
-        {
-            //reference 0x0937D0 not 0x0937B0 (file name)
-            0x020CB5,
-            0x020CF6,
-            0x020D38,
-        };
-        public List<long> BackgroundTypeReferences { get; set; } = new List<long>()
-        {
-            //reference 0x0937F0 not 0x0937B0 (background type)
-            0x020D9E,
-        };
-        public List<long> BackgroundNameReferences { get; set; } = new List<long>()
-        {
-            //reference 0x0937F4 not 0x0937B0 (background)
-            0x020D7A,
-        };
-        public List<long> Spritesheet1References { get; set; } = new List<long>()
-        {
-            //reference 0x093814 not 0x0937B0 (npc tileset 1)
-            0x020DD9,
-        };
-        public List<long> Spritesheet2References { get; set; } = new List<long>()
-        {
-            //reference 0x093834 not 0x0937B0 (npc tileset 2)
-            0x020E1C,
-        };
-        public List<long> BossNumberReferences { get; set; } = new List<long>()
-        {
-            //reference 0x093854 not 0x0937B0 (boss number)
-            0x020EA8,
-        };
-        public List<long> MapNameReferences { get; set; } = new List<long>()
-        {
-            //reference 0x093855 not 0x0937B0 (caption)
-            0x020E6A,
-        };
+            switch(preset)
+            {
+                case StageTablePresets.doukutsuexe:
+                    TilesetReferences = new List<long>() { 0x020C2F, 0x020C73 }; //tileset?
+                    FilenameReferences = new List<long>() { 0x020CB5, 0x020CF6, 0x020D38 }; //reference 0x0937D0 not 0x0937B0 (file name)
+                    BackgroundTypeReferences = new List<long>() { 0x020D9E }; //reference 0x0937F0 not 0x0937B0 (background type)
+                    BackgroundNameReferences = new List<long>() { 0x020D7A }; //reference 0x0937F4 not 0x0937B0 (background)
+                    Spritesheet1References = new List<long>() { 0x020DD9 }; //reference 0x093814 not 0x0937B0 (npc tileset 1)
+                    Spritesheet2References = new List<long>() { 0x020E1C }; //reference 0x093834 not 0x0937B0 (npc tileset 2)
+                    BossNumberReferences = new List<long>() { 0x020EA8 }; //reference 0x093854 not 0x0937B0 (boss number)
+                    JapaneseNameReferences.Clear();
+                    MapNameReferences = new List<long>() { 0x020E6A }; //reference 0x093855 not 0x0937B0 (caption)
+                    break;
+            }
+        }
     }
 
+    [DebuggerDisplay("{Filename} - {MapName}")]
     public class StageEntry : INotifyPropertyChanging, INotifyPropertyChanged, ICloneable
     {
+        public const int DoukutsuExeLength = 200;
+        public const int CSPlusLength = 232;
+        public const int CS3DLength = 268; //tested on JP
+
         public event PropertyChangingEventHandler PropertyChanging;
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -815,27 +806,8 @@ namespace CaveStoryModdingFramework.Stages
         }
         public static List<StageEntry> Read(StageTableLocation location, StageEntrySettings settings)
         {
-            var stageCount = location.StageCount;
-            //an offset of 0 (or less) means we're probably using the whole section/file...
-            if (location.Offset <= 0)
-            {
-                switch(location.DataLocationType)
-                {
-                    case DataLocationTypes.Internal:
-                        //if it's a section, use the length of it
-                        if (!string.IsNullOrEmpty(location.SectionName))
-                            stageCount = (int)(location.GetSection().RawSize / settings.Size);
-                        //if we get here that means we just have the stage table right at the beginning of the entire file...?!
-                        else
-                            throw new ArgumentException("Is your stage table seriously at the very start of an exe?!",
-                                $"{nameof(location.Offset)}, {nameof(location.SectionName)}");
-                        break;
-                    //if it's a file, use the length of that
-                    case DataLocationTypes.External:
-                        stageCount = (int)(new FileInfo(location.Filename).Length / settings.Size);
-                        break;
-                }                
-            }
+            if(!location.TryCalculateEntryCount(settings.Size, out int stageCount))
+                stageCount = location.StageCount;
             using (var br = new BinaryReader(location.GetStream(FileMode.Open, FileAccess.Read)))
             {
                 switch (location.StageTableFormat)
@@ -943,8 +915,10 @@ namespace CaveStoryModdingFramework.Stages
                 set = true;
             }
 
+            //Opening the file the internal stage table is located in AT the stage table
             using (var bw = new BinaryWriter(location.GetStream(FileMode.Open, FileAccess.ReadWrite)))
             {
+                //if we aren't going off of a section name, then we add the current position
                 //this might not work in *every* case, but it can be circumvented by using the actual section name anyways, so...
                 if(!set)
                     startOfStageTable += (uint)bw.BaseStream.Position;
@@ -972,7 +946,8 @@ namespace CaveStoryModdingFramework.Stages
                 UpdateAddressList(r.Spritesheet1References, startOfStageTable += (uint)settings.BackgroundNameBuffer);
                 UpdateAddressList(r.Spritesheet2References, startOfStageTable += (uint)settings.Spritesheet1Buffer);
                 UpdateAddressList(r.BossNumberReferences, startOfStageTable += (uint)settings.Spritesheet2Buffer);
-                UpdateAddressList(r.MapNameReferences, startOfStageTable += (uint)Marshal.SizeOf(settings.BossNumberType));
+                UpdateAddressList(r.JapaneseNameReferences, startOfStageTable += (uint)Marshal.SizeOf(settings.BossNumberType));
+                UpdateAddressList(r.MapNameReferences, startOfStageTable += (uint)settings.JapaneseNameBuffer);
             }
         }
 #endregion

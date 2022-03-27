@@ -165,6 +165,39 @@ namespace CaveStoryModdingFramework
             }
         }
 
+        public bool TryCalculateEntryCount(int entrySize, out int size)
+        {
+            //an offset of 0 (or less) means we're probably using the whole section/file...
+            if (Offset <= 0)
+            {
+                switch (DataLocationType)
+                {
+                    case DataLocationTypes.Internal:
+                        //if it's a section, use the length of it
+                        if (!string.IsNullOrEmpty(SectionName))
+                            size = (int)(GetSection().RawSize / entrySize);
+                        //if we get here that means we just
+                        //have the data right at the beginning of the entire file...?!
+                        else
+                            throw new ArgumentException("There's no way your data is at the *very* start of an exe...?!",
+                                $"{nameof(Offset)}, {nameof(SectionName)}");
+                        break;
+                    //if it's a file, use the length of that
+                    case DataLocationTypes.External:
+                        size = (int)(new FileInfo(Filename).Length / entrySize);
+                        break;
+                    default:
+                        throw new ArgumentException($"Invalid {nameof(DataLocationType)}: {DataLocationType}", nameof(DataLocationType));
+                }
+                return true;
+            }
+            else
+            {
+                size = -1;
+                return false;
+            }
+        }
+
         public virtual XElement ToXML(string elementName, string relativeBase)
         {
             return new XElement(elementName,

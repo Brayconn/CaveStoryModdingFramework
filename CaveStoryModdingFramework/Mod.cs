@@ -81,6 +81,16 @@ namespace CaveStoryModdingFramework
         [Browsable(false)]
         public List<BulletTableEntry> BulletTable { get; private set; }
 
+
+
+
+
+
+
+
+
+
+
         #region path/folder stuff
 
         [LocalizeableCategory(nameof(Dialog.FoldersCategory), typeof(Dialog))]
@@ -94,7 +104,7 @@ namespace CaveStoryModdingFramework
 
 
         [LocalizeableCategory(nameof(Dialog.FoldersCategory), typeof(Dialog))]
-        public string NpcTablePath { get; set; }
+        public NPCTableLocation NpcTableLocation { get; set; }
 
         [LocalizeableCategory(nameof(Dialog.FoldersCategory), typeof(Dialog)), TypeConverter(typeof(ExpandableObjectConverter))]
         public BulletTableLocation BulletTableLocation { get; private set; }
@@ -350,9 +360,9 @@ namespace CaveStoryModdingFramework
             
             BulletTable = CaveStoryModdingFramework.BulletTable.Read(BulletTableLocation);
 
-            NpcTablePath = Path.Combine(BaseDataPath, Entities.NPCTable.NPCTBL);
-            if(File.Exists(NpcTablePath))
-                NPCTable = Entities.NPCTable.Load(NpcTablePath);
+            NpcTableLocation = new NPCTableLocation(Path.Combine(BaseDataPath, Entities.NPCTable.NPCTBL));
+            if(File.Exists(NpcTableLocation.Filename))
+                NPCTable = Entities.NPCTable.Load(NpcTableLocation);
 
             //TODO test if this is really needed...
             foreach (var surface in Surfaces.SurfaceList)
@@ -389,8 +399,8 @@ namespace CaveStoryModdingFramework
 
             BulletTable = CaveStoryModdingFramework.BulletTable.Read(BulletTableLocation);
 
-            if (File.Exists(NpcTablePath))
-                NPCTable = Entities.NPCTable.Load(NpcTablePath);
+            if (File.Exists(NpcTableLocation.Filename))
+                NPCTable = Entities.NPCTable.Load(NpcTableLocation);
         }
 
         /// <summary>
@@ -451,7 +461,8 @@ namespace CaveStoryModdingFramework
 
                 reader.ReadStartElement(XmlNPCTable);
                 {
-                    NpcTablePath = AssetManager.MakeAbsolute(BaseDataPath, reader.ReadElementContentAsString(nameof(NpcTablePath),""));
+                    NpcTableLocation = reader.DeserializeAs(NpcTableLocation, nameof(NpcTableLocation));
+                    NpcTableLocation.Filename = AssetManager.MakeAbsolute(BaseDataPath, NpcTableLocation.Filename);
                 }
                 reader.ReadEndElement();
 
@@ -559,8 +570,7 @@ namespace CaveStoryModdingFramework
 
                 writer.WriteStartElement(XmlNPCTable);
                 {
-                    var relativeNpcTablePath = AssetManager.MakeRelative(BaseDataPath, NpcTablePath);
-                    writer.WriteElementString(nameof(NpcTablePath), relativeNpcTablePath);
+                    SerializeRelativeDataLocation(NpcTableLocation);
                 }
                 writer.WriteEndElement();
 
