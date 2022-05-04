@@ -34,7 +34,9 @@ namespace CaveStoryModdingFramework
                 return (K)Convert.ChangeType(reader.GetAttribute(name), typeof(K));
             }
 
+            bool empty = reader.IsEmptyElement;
             reader.ReadStartElement();
+            if(!empty)
             {
                 if (typeof(V) == typeof(string))
                 {
@@ -81,11 +83,12 @@ namespace CaveStoryModdingFramework
                         var value = valueSerializer.Deserialize(reader);
                         this.Add(key, (V)value);
 
-                        reader.ReadToNextSibling(ItemName);
+                        if (reader.LocalName == ItemName && reader.NodeType == XmlNodeType.EndElement)
+                            reader.ReadEndElement();
                     }
                 }
+                reader.ReadEndElement();
             }
-            reader.ReadEndElement();
         }
 
         public void WriteXml(XmlWriter writer)
