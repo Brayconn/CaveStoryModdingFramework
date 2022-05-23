@@ -11,51 +11,6 @@ namespace CaveStoryModdingFramework
         doukutsuexe,
         csplus
     }
-    public class BulletTableLocation : DataLocation
-    {
-        public int BulletCount { get; set; }
-        public bool PadDamageAndHits { get; set; }
-
-        public int EntrySize => PadDamageAndHits ? BulletTableEntry.PaddedSize : BulletTableEntry.UnpaddedSize;
-
-        private BulletTableLocation()
-        {
-            
-        }
-        public BulletTableLocation(string path)
-        {
-            Filename = path;
-        }
-        public BulletTableLocation(string path, BulletTablePresets preset) : this(path)
-        {
-            ResetToDefault(preset);
-        }
-        public void ResetToDefault(BulletTablePresets preset)
-        {
-            switch (preset)
-            {
-                case BulletTablePresets.doukutsuexe:
-                    DataLocationType = DataLocationTypes.Internal;
-                    SectionName = "";
-                    Offset = BulletTable.CSBulletTableAddress;
-                    MaximumSize = BulletTable.CSBulletTableSize;
-                    FixedSize = true;
-                    BulletCount = BulletTable.CSBulletTableCount;
-                    PadDamageAndHits = true;
-                    break;
-                case BulletTablePresets.csplus:
-                    DataLocationType = DataLocationTypes.External;
-                    SectionName = "";
-                    Offset = 0;
-                    MaximumSize = 0;
-                    FixedSize = false;
-                    BulletCount = BulletTable.CSBulletTableCount;
-                    PadDamageAndHits = false;
-                    break;
-            }
-        }
-    }
-
     [Flags]
     public enum BulletFlags : uint
     {
@@ -96,8 +51,7 @@ namespace CaveStoryModdingFramework
         [TypeConverter(typeof(BullletViewRectTypeConverter))]
         public BulletViewRect ViewBox { get => viewBox; set => SetVal(ref viewBox, value); }
     }
-
-    public static class BulletTable
+    public class BulletTableLocation : DataLocation
     {
         public const string BULLETTABLE = "bullet.tbl";
         public static string BulletTableFilter = $"Bullet Table ({BULLETTABLE})|{BULLETTABLE}";
@@ -106,13 +60,58 @@ namespace CaveStoryModdingFramework
         public const int CSBulletTableCount = 46;
         public const int CSBulletTableSize = CSBulletTableCount * BulletTableEntry.PaddedSize;
 
-        public static List<BulletTableEntry> Read(BulletTableLocation location)
+        int bulletCount;
+        bool padDamageAndHits;
+        public int BulletCount { get => bulletCount; set => SetVal(ref bulletCount, value); }
+        public bool PadDamageAndHits { get => padDamageAndHits; set => SetVal(ref padDamageAndHits, value); }
+
+        public int EntrySize => PadDamageAndHits ? BulletTableEntry.PaddedSize : BulletTableEntry.UnpaddedSize;
+
+        public BulletTableLocation()
         {
-            var count = location.BulletCount;
-            if (location.DataLocationType == DataLocationTypes.External)
-                count = (int)(new FileInfo(location.Filename).Length / location.EntrySize);
+
+        }
+        public BulletTableLocation(BulletTablePresets preset)
+        {
+            ResetToDefault(preset);
+        }
+        public BulletTableLocation(string filename, BulletTablePresets preset)
+        {
+            Filename = filename;
+            ResetToDefault(preset);
+        }
+        public void ResetToDefault(BulletTablePresets preset)
+        {
+            switch (preset)
+            {
+                case BulletTablePresets.doukutsuexe:
+                    DataLocationType = DataLocationTypes.Internal;
+                    SectionName = "";
+                    Offset = CSBulletTableAddress;
+                    MaximumSize = CSBulletTableSize;
+                    FixedSize = true;
+                    BulletCount = CSBulletTableCount;
+                    PadDamageAndHits = true;
+                    break;
+                case BulletTablePresets.csplus:
+                    DataLocationType = DataLocationTypes.External;
+                    SectionName = "";
+                    Offset = 0;
+                    MaximumSize = 0;
+                    FixedSize = false;
+                    BulletCount = CSBulletTableCount;
+                    PadDamageAndHits = false;
+                    break;
+            }
+        }
+
+        public List<BulletTableEntry> Read()
+        {
+            var count = BulletCount;
+            if (DataLocationType == DataLocationTypes.External)
+                count = (int)(new FileInfo(Filename).Length / EntrySize);
             var output = new List<BulletTableEntry>(count);
-            using(var br = new BinaryReader(location.GetStream(FileMode.Open, FileAccess.Read)))
+            using (var br = new BinaryReader(GetStream(FileMode.Open, FileAccess.Read)))
             {
                 for (int i = 0; i < count; i++)
                 {
@@ -121,7 +120,7 @@ namespace CaveStoryModdingFramework
                         Damage = br.ReadSByte(),
                         Hits = br.ReadSByte()
                     };
-                    if (location.PadDamageAndHits)
+                    if (PadDamageAndHits)
                         br.BaseStream.Position += 2;
                     entry.Range = br.ReadInt32();
                     entry.Bits = (BulletFlags)br.ReadUInt32();
@@ -137,16 +136,16 @@ namespace CaveStoryModdingFramework
             return output;
         }
 
-        public static void Write(IList<BulletTableEntry> bullets, BulletTableLocation location)
+        public void Write(IList<BulletTableEntry> bullets)
         {
-            var buff = new byte[bullets.Count * location.EntrySize];
-            using(var bw = new BinaryWriter(new MemoryStream(buff)))
+            var buff = new byte[bullets.Count * EntrySize];
+            using (var bw = new BinaryWriter(new MemoryStream(buff)))
             {
-                foreach(var bullet in bullets)
+                foreach (var bullet in bullets)
                 {
                     bw.Write(bullet.Damage);
                     bw.Write(bullet.Hits);
-                    if(location.PadDamageAndHits) //I'm so clever 😎
+                    if (PadDamageAndHits) //I'm so clever 😎
                         bw.Write((ushort)0);
                     bw.Write(bullet.Range);
                     bw.Write((uint)bullet.Bits);
@@ -157,8 +156,19 @@ namespace CaveStoryModdingFramework
                     bw.Write(bullet.ViewBox);
                 }
             }
-            DataLocation.Write(location, buff);
+            Write(buff);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if(obj is BulletTableLocation btl)
+            {
+                return base.Equals(btl)
+                    && BulletCount == btl.BulletCount
+                    && PadDamageAndHits == btl.PadDamageAndHits;
+            }
+            else 
+                return base.Equals(obj);
         }
     }
-
 }

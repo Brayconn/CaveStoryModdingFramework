@@ -44,16 +44,20 @@ namespace CaveStoryModdingFramework.Maps
                     Tiles[i] = initialValue;
         }
 
-        static readonly byte[] DefaultHeader = new byte[] { (byte)'P', (byte)'X', (byte)'M', 0x10 };
+        public static readonly byte[] DefaultHeader = new byte[] { (byte)'P', (byte)'X', (byte)'M' };
+        public static readonly byte[] DefaultPostHeader = new byte[] { 0x10 };
 
-        public Map(string path) : this(path, DefaultHeader) { }
-        public Map(string path, byte[] header)
+        public Map(string path) : this(path, DefaultHeader, DefaultPostHeader) { }
+        public Map(string path, byte[] header, byte[] postHeader)
         {
             using (var br = new BinaryReader(new FileStream(path, FileMode.Open, FileAccess.Read)))
             {
                 var actual = br.ReadBytes(header.Length);
                 if(!actual.SequenceEqual(header))
-                    throw new FileLoadException(); //TODO add error message
+                    throw new FileLoadException("Invalid header"); //TODO add error message
+                _ = br.ReadBytes(postHeader.Length);
+                //TODO maybe put some kind of a warning if the post header is wrong?
+                //actually should also put a warning when loading layers mode maps that change the post header
                 Width = br.ReadInt16();
                 Height = br.ReadInt16();
                 Tiles = new List<byte?>(Width * Height);
@@ -136,9 +140,9 @@ namespace CaveStoryModdingFramework.Maps
 
         public void Save(string path)
         {
-            Save(path, DefaultHeader);
+            Save(path, DefaultHeader, DefaultPostHeader);
         }
-        public void Save(string path, byte[] header)
+        public void Save(string path, byte[] header, byte[] postHeader)
         {
             for (int i = 0; i < Tiles.Count; i++)
                 if (Tiles[i] == null)
@@ -147,6 +151,7 @@ namespace CaveStoryModdingFramework.Maps
             using (var bw = new BinaryWriter(new FileStream(path, FileMode.Create, FileAccess.Write)))
             {
                 bw.Write(header);
+                bw.Write(postHeader);
                 bw.Write(Width);
                 bw.Write(Height);
                 for (int i = 0; i < Tiles.Count; i++)

@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Serialization;
 
 namespace CaveStoryModdingFramework
 {
-    static class Extensions
+    public static class Extensions
     {
         public static T Clamp<T>(this T value, T min, T max) where T : IComparable<T>
         {
@@ -99,6 +99,99 @@ namespace CaveStoryModdingFramework
         {
             var serializer = new XmlSerializer(typeof(T), new XmlRootAttribute(root));
             serializer.Serialize(stream, obj, BlankNamespace);
+        }
+
+        public static Encoding ReadElementContentAsEncoding(this XmlReader reader, string localName, string namespaceURI = "")
+        {
+#if NETCOREAPP
+            //.NET Core will throw on the subsequent call to get Shift JIS if this isn't run
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+#endif
+            var str = reader.ReadElementContentAsString(localName, namespaceURI);
+            if (!string.IsNullOrWhiteSpace(str))
+                return Encoding.GetEncoding(str);
+            else
+                return null;
+        }
+
+        public static Type ReadElementContentAsTypeName(this XmlReader reader, string localName, string namespaceURI = "")
+        {
+            var typeName = reader.ReadElementContentAsString(localName, namespaceURI);
+            var type = Type.GetType(typeName);
+            return type;
+        }
+
+        public static Stream OpenInMemory(string path)
+        {
+            var fs = new FileStream(path, FileMode.Open, FileAccess.Read);
+            byte[] contents;
+            Stream StreamToUse;
+            try
+            {
+                contents = new byte[fs.Length];
+                fs.Read(contents, 0, (int)fs.Length);
+                StreamToUse = new MemoryStream(contents);
+                fs.Close();
+            }
+            catch (OutOfMemoryException) //file was too big to load into memory all at once I guess
+            {
+                StreamToUse = fs;
+            }
+            return StreamToUse;
+        }
+
+        public static long FindBytes(this Stream stream, byte[] seq)
+        {
+            var counter = 0;
+            while (stream.Position < stream.Length && counter < seq.Length)
+            {
+                if (stream.ReadByte() != seq[counter++])
+                    counter = 0;
+            }
+            if (counter >= seq.Length)
+                return stream.Position - counter;
+            else
+                return -1;
+        }
+
+        public static int CountZeros(this Stream stream)
+        {
+            var count = 0;
+            while (stream.ReadByte() == 0)
+                count++;
+            stream.Position--;
+            return count;
+        }
+
+        //These two methods rely on the fact that .NET Framework is probably only being used on Windows
+        //(where NTFS is already case insensitive without the extra arg)
+        //But Linux/Mac users are probably using .NET Core, so they need this
+        //Just don't run this on .NET Framework on Mac/Linux and we should be good
+        public static IEnumerable<string> EnumerateFilesCaseInsensitive(string path, string filter = "")
+        {
+            return Directory.EnumerateFiles(path, filter
+                    
+#if NETCOREAPP2_1_OR_GREATER || NETSTANDARD2_1_OR_GREATER
+                    , new EnumerationOptions { MatchCasing = MatchCasing.CaseInsensitive }
+#endif
+                );
+        }
+        public static IEnumerable<string> EnumerateDirectoriesCaseInsensitive(string path, string filter = "")
+        {
+            return Directory.EnumerateDirectories(path, filter
+#if NETCOREAPP2_1_OR_GREATER || NETSTANDARD2_1_OR_GREATER
+                    , new EnumerationOptions { MatchCasing = MatchCasing.CaseInsensitive }
+#endif
+                );
+        }
+
+        public static string ReplaceCaseInsensitive(this string s, string old, string @new)
+        {
+#if NETCOREAPP2_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER
+            return s.Replace(old, @new, StringComparison.OrdinalIgnoreCase);
+#else
+            return Regex.Replace(s, Regex.Escape(old), @new, RegexOptions.IgnoreCase);
+#endif
         }
     }
 }

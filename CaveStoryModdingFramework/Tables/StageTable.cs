@@ -7,12 +7,12 @@ using PETools;
 using System.Linq;
 using System.ComponentModel;
 using System.Globalization;
-using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 using System.Xml;
 using System.Xml.Serialization;
 using System.Xml.Schema;
 using System.Diagnostics;
+using CaveStoryModdingFramework.Utilities;
 
 namespace CaveStoryModdingFramework.Stages
 {
@@ -146,119 +146,7 @@ namespace CaveStoryModdingFramework.Stages
 
     #endregion
 
-    public class StageTableLocation : DataLocation
-    {
-        StageTableFormats stageTableFormat;
-        int stageCount;
-        public StageTableFormats StageTableFormat { get => stageTableFormat; set => SetVal(ref stageTableFormat, value); }
-        public int StageCount { get => stageCount; set => SetVal(ref stageCount, value); }
-
-        public StageTableLocation()
-        {
-
-        }
-        public StageTableLocation(string path)
-        {
-            Filename = path;
-        }
-        public StageTableLocation(string path, StageTablePresets type) : this(path)
-        {
-            ResetToDefault(type);
-        }
-        public StageTableLocation(XmlElement xml, string filename)
-        {
-            Filename = filename;
-            //Filename = xml[nameof(Filename)].InnerText;
-            DataLocationType = (DataLocationTypes)Enum.Parse(typeof(DataLocationTypes), xml[nameof(DataLocationType)].InnerText);
-            Offset = int.Parse(xml[nameof(Offset)].InnerText);
-            SectionName = xml[nameof(SectionName)].InnerText;
-            FixedSize = bool.Parse(xml[nameof(FixedSize)].InnerText);
-            MaximumSize = int.Parse(xml[nameof(MaximumSize)].InnerText);
-
-            StageTableFormat = (StageTableFormats)Enum.Parse(typeof(StageTableFormats), xml[nameof(StageTableFormat)].InnerText);
-            StageCount = int.Parse(xml[nameof(StageCount)].InnerText);
-        }
-        public override XElement ToXML(string elementName, string relativeBase)
-        {
-            var x = base.ToXML(elementName, relativeBase);
-            x.Add(
-                new XElement(nameof(StageTableFormat), StageTableFormat),
-                new XElement(nameof(StageCount), StageCount)
-                );
-            return x;
-        }
-        public void ResetToDefault(StageTablePresets type)
-        {
-            switch (type)
-            {
-                case StageTablePresets.doukutsuexe:
-                    DataLocationType = DataLocationTypes.Internal;
-                    SectionName = "";
-                    Offset = StageTable.CSStageTableAddress;
-                    MaximumSize = StageTable.CSStageTableSize;
-                    FixedSize = true;
-                    StageTableFormat = StageTableFormats.normal;
-                    StageCount = StageTable.CSStageCount;
-                    break;
-                case StageTablePresets.swdata:
-                    DataLocationType = DataLocationTypes.Internal;
-                    SectionName = StageTable.SWDATASectionName;
-                    Offset = 0;
-                    MaximumSize = 0;
-                    FixedSize = false;
-                    StageTableFormat = StageTableFormats.swdata;
-                    StageCount = 0;
-                    break;
-                case StageTablePresets.csmap:
-                    DataLocationType = DataLocationTypes.Internal;
-                    SectionName = StageTable.CSMAPSectionName;
-                    Offset = 0;
-                    MaximumSize = 0;
-                    FixedSize = false;
-                    StageTableFormat = StageTableFormats.normal;
-                    StageCount = 0;
-                    break;
-                case StageTablePresets.stagetbl:
-                case StageTablePresets.mrmapbin:
-                    DataLocationType = DataLocationTypes.External;
-                    SectionName = "";
-                    Offset = 0;
-                    MaximumSize = type == StageTablePresets.stagetbl ? StageTable.STAGETBLSize : 0;
-                    FixedSize = false; //TODO check on the real limits of stage.tbl
-                    StageTableFormat = type == StageTablePresets.stagetbl ? StageTableFormats.normal : StageTableFormats.mrmapbin;
-                    StageCount = 0;
-                    break;
-                case StageTablePresets.custom:
-                    throw new ArgumentException("There is no preset for custom", nameof(type));
-            }
-        }
-        public override bool Equals(object obj)
-        {
-            if (obj is StageTableLocation l)
-            {
-                return DataLocationType == l.DataLocationType &&
-                    SectionName == l.SectionName &&
-                    Offset == l.Offset &&
-                    MaximumSize == l.MaximumSize &&
-                    FixedSize == l.FixedSize &&
-                    StageTableFormat == l.StageTableFormat &&
-                    StageCount == l.StageCount;
-            }
-            else return base.Equals(obj);
-        }
-        public override int GetHashCode()
-        {
-            return (2 * DataLocationType.GetHashCode()) +
-                (3 * SectionName.GetHashCode()) +
-                (5 * Offset.GetHashCode()) +
-                (7 * MaximumSize.GetHashCode()) +
-                (11 * FixedSize.GetHashCode()) +
-                (13 * StageTableFormat.GetHashCode()) +
-                (17 * StageCount.GetHashCode());
-        }
-    }
-
-    public class StageEntrySettings : IXmlSerializable
+    public class StageTableEntrySettings : IXmlSerializable
     {
         const string VariableTypes = "Variable Types";
         const string BufferSizes = "Buffer Sizes";
@@ -329,26 +217,17 @@ namespace CaveStoryModdingFramework.Stages
             {
                 Type ReadType(string name)
                 {
-                    var typeName = reader.ReadElementContentAsString(name, "");
-                    var type = Type.GetType(typeName);
+                    var type = reader.ReadElementContentAsTypeName(name);
                     if (!EnumTypeTypeConverter.integerTypes.Contains(type))
-                        throw new ArgumentException("Invalid type!");
+                        throw new ArgumentException($"{type.Name} is not a valid type!");
                     return type;
                 }
                 BackgroundTypeType = ReadType(nameof(BackgroundTypeType));
                 BossNumberType = ReadType(nameof(BossNumberType));
 
-                Encoding ReadEncoding(string name)
-                {
-                    var str = reader.ReadElementContentAsString(name, "");
-                    if (!string.IsNullOrWhiteSpace(str))
-                        return Encoding.GetEncoding(str);
-                    else
-                        return null;
-                }
-                FilenameEncoding = ReadEncoding(nameof(FilenameEncoding));
-                MapNameEncoding = ReadEncoding(nameof(MapNameEncoding));
-                JapaneseNameEncoding = ReadEncoding(nameof(JapaneseNameEncoding));
+                FilenameEncoding = reader.ReadElementContentAsEncoding(nameof(FilenameEncoding));
+                MapNameEncoding = reader.ReadElementContentAsEncoding(nameof(MapNameEncoding));
+                JapaneseNameEncoding = reader.ReadElementContentAsEncoding(nameof(JapaneseNameEncoding));
 
                 TilesetNameBuffer = reader.ReadElementContentAsInt(nameof(TilesetNameBuffer), "");
                 FilenameBuffer = reader.ReadElementContentAsInt(nameof(FilenameBuffer), "");
@@ -412,15 +291,15 @@ namespace CaveStoryModdingFramework.Stages
                     throw new ArgumentException("No preset for custom!", nameof(type));
             }
         }
-        public StageEntrySettings()
+        public StageTableEntrySettings()
         { }
-        public StageEntrySettings(StageTablePresets type)
+        public StageTableEntrySettings(StageTablePresets type)
         {
             ResetToDefault(type);
         }
         public override bool Equals(object obj)
         {
-            if(obj is StageEntrySettings s)
+            if(obj is StageTableEntrySettings s)
             {
                 return FilenameEncoding == s.FilenameEncoding &&
                     TilesetNameBuffer == s.TilesetNameBuffer &&
@@ -467,53 +346,44 @@ namespace CaveStoryModdingFramework.Stages
         public List<long> JapaneseNameReferences { get; set; } = new List<long>();
         public List<long> MapNameReferences { get; set; } = new List<long>();
 
-
-        public void ResetToDefault(StageTablePresets preset)
+        public override bool Equals(object obj)
         {
-            switch(preset)
+            if (obj is StageTableReferences r)
             {
-                case StageTablePresets.doukutsuexe:
-                    TilesetReferences = new List<long>() { 0x020C2F, 0x020C73 }; //tileset?
-                    FilenameReferences = new List<long>() { 0x020CB5, 0x020CF6, 0x020D38 }; //reference 0x0937D0 not 0x0937B0 (file name)
-                    BackgroundTypeReferences = new List<long>() { 0x020D9E }; //reference 0x0937F0 not 0x0937B0 (background type)
-                    BackgroundNameReferences = new List<long>() { 0x020D7A }; //reference 0x0937F4 not 0x0937B0 (background)
-                    Spritesheet1References = new List<long>() { 0x020DD9 }; //reference 0x093814 not 0x0937B0 (npc tileset 1)
-                    Spritesheet2References = new List<long>() { 0x020E1C }; //reference 0x093834 not 0x0937B0 (npc tileset 2)
-                    BossNumberReferences = new List<long>() { 0x020EA8 }; //reference 0x093854 not 0x0937B0 (boss number)
-                    JapaneseNameReferences.Clear();
-                    MapNameReferences = new List<long>() { 0x020E6A }; //reference 0x093855 not 0x0937B0 (caption)
-                    break;
+                return TilesetReferences.SequenceEqual(r.TilesetReferences) &&
+                    FilenameReferences.SequenceEqual(r.FilenameReferences) &&
+                    BackgroundTypeReferences.SequenceEqual(r.BackgroundTypeReferences) &&
+                    BackgroundNameReferences.SequenceEqual(r.BackgroundNameReferences) &&
+                    Spritesheet1References.SequenceEqual(r.Spritesheet1References) &&
+                    Spritesheet2References.SequenceEqual(r.Spritesheet2References) &&
+                    BossNumberReferences.SequenceEqual(r.BossNumberReferences) &&
+                    JapaneseNameReferences.SequenceEqual(r.JapaneseNameReferences) &&
+                    MapNameReferences.SequenceEqual(r.MapNameReferences);
             }
+            else return base.Equals(obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return 2 * TilesetReferences.GetHashCode() +
+                3 * FilenameReferences.GetHashCode() +
+                5 * BackgroundTypeReferences.GetHashCode() +
+                7 * BackgroundNameReferences.GetHashCode() +
+                11 * Spritesheet1References.GetHashCode() +
+                13 * Spritesheet2References.GetHashCode() +
+                17 * BossNumberReferences.GetHashCode() +
+                19 * JapaneseNameReferences.GetHashCode() +
+                23 * MapNameReferences.GetHashCode();
         }
     }
 
+
     [DebuggerDisplay("{Filename} - {MapName}")]
-    public class StageEntry : INotifyPropertyChanging, INotifyPropertyChanged, ICloneable
+    public class StageTableEntry : PropertyChangedHelper, ICloneable
     {
         public const int DoukutsuExeLength = 200;
         public const int CSPlusLength = 232;
         public const int CS3DLength = 268; //tested on JP
-
-        public event PropertyChangingEventHandler PropertyChanging;
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        void NotifyPropertyChanging([CallerMemberName] string name = "")
-        {
-            PropertyChanging?.Invoke(this, new PropertyChangingEventArgs(name));
-        }
-        void NotifyPropertyChanged([CallerMemberName] string name = "")
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-        }
-        void SetVal<T>(ref T variable, T value, [CallerMemberName] string name = "")
-        {
-            if (!EqualityComparer<T>.Default.Equals(variable, value))
-            {
-                NotifyPropertyChanging(name);
-                variable = value;
-                NotifyPropertyChanged(name);
-            }
-        }
 
         string tilesetName, filename, backgroundName, spritesheet1, spritesheet2, japaneseName, mapName;
         long backgroundType, bossNumber;
@@ -528,7 +398,7 @@ namespace CaveStoryModdingFramework.Stages
         public string JapaneseName { get => japaneseName; set => SetVal(ref japaneseName, value); }
         public string MapName { get => mapName; set => SetVal(ref mapName, value); }
 
-        public byte[] Serialize(StageEntrySettings settings)
+        public byte[] Serialize(StageTableEntrySettings settings)
         {
             var data = new byte[settings.Size];
             var index = 0;
@@ -560,7 +430,7 @@ namespace CaveStoryModdingFramework.Stages
 
         public object Clone()
         {
-            return new StageEntry()
+            return new StageTableEntry()
             {
                 TilesetName = tilesetName,
                 Filename = filename,
@@ -575,10 +445,9 @@ namespace CaveStoryModdingFramework.Stages
         }
     }
 
+
     public static class StageTable
     {
-#region constants
-
         public const string EXEFilter = "Executables (*.exe)|*.exe";
         public const string CSFilter = "Cave Story (Doukutsu.exe)|Doukutsu.exe";
         public const string MRMAPFilter = "CSE2 (mrmap.bin)|mrmap.bin";
@@ -622,31 +491,9 @@ namespace CaveStoryModdingFramework.Stages
 
         public const string MRMAPBIN = "mrmap.bin";
 
-#endregion
-
-#region section manipulation
-
-        public static bool TryDetectTableType(string path, out StageTablePresets type)
-        {
-            var pe = PEFile.FromFile(path);
-            bool SWdata = pe.ContainsSection(SWDATASectionName);
-            bool CSMap = pe.ContainsSection(CSMAPSectionName);
-            if (SWdata && CSMap)
-            {
-                type = (StageTablePresets)(-1);
-                return false;
-            }
-            else if (SWdata)
-                type = StageTablePresets.swdata;
-            else if (CSMap)
-                type = StageTablePresets.csmap;
-            else
-                type = StageTablePresets.doukutsuexe;
-            return true;
-        }
 
         /// <summary>
-        /// Removes the specificed stage table type from the exe. This does not update any references to the stage table however
+        /// Removes the specificed stage table type from the exe without updating any references
         /// </summary>
         /// <param name="path"></param>
         /// <param name="type"></param>
@@ -704,9 +551,8 @@ namespace CaveStoryModdingFramework.Stages
             }
         }
 
-#endregion
-
-        public static int GetBufferSize(StageTableFormats format, int stageCount, StageEntrySettings settings)
+        //Determine how much space a stage table in the given format would take up
+        public static int GetBufferSize(StageTableFormats format, int stageCount, StageTableEntrySettings settings)
         {
             switch (format)
             {
@@ -720,49 +566,27 @@ namespace CaveStoryModdingFramework.Stages
                     return -1;
             }
         }
-
-        public static bool TryDetectPreset(StageTableLocation location, StageEntrySettings settings, out StageTablePresets preset)
+        public static List<StageTableEntry> ReadSWData(this BinaryReader br, int stageCount, StageTableEntrySettings settings)
         {
-            preset = StageTablePresets.custom;
-            switch (location.DataLocationType)
+            var header = br.ReadString(SWDATAHeader.Length, Encoding.ASCII);
+            if (header != SWDATAHeader)
+                throw new FileLoadException(); //TODO
+            var stages = new List<StageTableEntry>(stageCount);
+            while (true)
             {
-                case DataLocationTypes.Internal:
-                    //doukutsuexe, csmap, and swdata share the same entry settings
-                    var internalSettings = new StageEntrySettings(StageTablePresets.doukutsuexe);
-                    if(settings.Equals(internalSettings))
-                    {
-                        if(location.Equals(new StageTableLocation("", StageTablePresets.doukutsuexe)))
-                        {
-                            preset = StageTablePresets.doukutsuexe;
-                        }
-                        else if(location.Equals(new StageTableLocation("", StageTablePresets.csmap)))
-                        {
-                            preset = StageTablePresets.csmap;
-                        }
-                        else if(location.Equals(new StageTableLocation("", StageTablePresets.swdata)))
-                        {
-                            preset = StageTablePresets.swdata;
-                        }
-                    }
+                var buffer = br.ReadBytes(settings.Size);
+                if (buffer.All(x => x == 0xFF))
                     break;
-                case DataLocationTypes.External:
-                    if(location.Equals(new StageTableLocation("", StageTablePresets.stagetbl)) && settings.Equals(new StageEntrySettings(StageTablePresets.stagetbl)))
-                    {
-                        preset = StageTablePresets.stagetbl;
-                    }
-                    else if(location.Equals(new StageTableLocation("", StageTablePresets.mrmapbin)) && settings.Equals(new StageEntrySettings(StageTablePresets.mrmapbin)))
-                    {
-                        preset = StageTablePresets.mrmapbin;
-                    }
-                    break;
+                using (var buff = new BinaryReader(new MemoryStream(buffer)))
+                {
+                    stages.Add(ReadStage(buff, settings));
+                }
             }
-            return preset != StageTablePresets.custom;
+            return stages;
         }
-
-#region Reading
-        public static StageEntry ReadStage(this BinaryReader br, StageEntrySettings settings)
+        public static StageTableEntry ReadStage(this BinaryReader br, StageTableEntrySettings settings)
         {
-            var s = new StageEntry()
+            var s = new StageTableEntry()
             {
                 TilesetName = br.ReadString(settings.TilesetNameBuffer, settings.FilenameEncoding),
                 Filename = br.ReadString(settings.FilenameBuffer, settings.FilenameEncoding),
@@ -777,87 +601,158 @@ namespace CaveStoryModdingFramework.Stages
             br.BaseStream.Seek(settings.Padding, SeekOrigin.Current);
             return s;
         }
-        public static List<StageEntry> ReadStages(this BinaryReader br, int stageCount, StageEntrySettings settings )
+        public static List<StageTableEntry> ReadStages(this BinaryReader br, int stageCount, StageTableEntrySettings settings)
         {
-            var stages = new List<StageEntry>(stageCount);
-            for(int i = 0; i < stageCount; i++)
+            var stages = new List<StageTableEntry>(stageCount);
+            for (int i = 0; i < stageCount; i++)
             {
-                stages.Add(ReadStage(br,settings));
+                stages.Add(ReadStage(br, settings));
             }
             return stages;
         }
-        public static List<StageEntry> ReadSWData(this BinaryReader br, int stageCount, StageEntrySettings settings)
-        {
-            var header = br.ReadString(SWDATAHeader.Length, Encoding.ASCII);
-            if (header != SWDATAHeader)
-                throw new FileLoadException(); //TODO
-            var stages = new List<StageEntry>(stageCount);
-            while (true)
-            {                
-                var buffer = br.ReadBytes(settings.Size);
-                if (buffer.All(x => x == 0xFF))
-                    break;
-                using (var buff = new BinaryReader(new MemoryStream(buffer)))
-                {
-                    stages.Add(ReadStage(buff, settings));
-                }
-            }
-            return stages;
-        }
-        public static List<StageEntry> Read(StageTableLocation location, StageEntrySettings settings)
-        {
-            if(!location.TryCalculateEntryCount(settings.Size, out int stageCount))
-                stageCount = location.StageCount;
-            using (var br = new BinaryReader(location.GetStream(FileMode.Open, FileAccess.Read)))
-            {
-                switch (location.StageTableFormat)
-                {
-                    case StageTableFormats.mrmapbin:
-                        stageCount = br.ReadInt32();
-                        goto case StageTableFormats.normal;
-                    case StageTableFormats.normal:
-                        return br.ReadStages(stageCount, settings);
-                    case StageTableFormats.swdata:
-                        return br.ReadSWData(stageCount, settings);
-                    default:
-                        throw new ArgumentException("Invalid stage table format!", nameof(location.StageTableFormat));
-                }
-            }
-        }
-#endregion
 
-#region Writing
-        public static void WriteStages(this BinaryWriter bw, IEnumerable<StageEntry> table, StageEntrySettings settings)
+        public static void WriteStages(this BinaryWriter bw, IEnumerable<StageTableEntry> table, StageTableEntrySettings settings)
         {
             foreach(var stage in table)
             {
                 bw.Write(stage.Serialize(settings));
             }
         }
-        public static void Write(IList<StageEntry> stages, StageTableLocation location, StageEntrySettings settings, StageTableReferences references)
+    }
+
+    public class StageTableLocation : DataLocation
+    {
+        StageTableFormats stageTableFormat;
+        int stageCount;
+        public StageTableFormats StageTableFormat { get => stageTableFormat; set => SetVal(ref stageTableFormat, value); }
+        public int StageCount { get => stageCount; set => SetVal(ref stageCount, value); }
+
+        public StageTableEntrySettings Settings { get; set; } = new StageTableEntrySettings();
+
+        public StageTableReferences References { get; set; } = new StageTableReferences();
+
+        public StageTableLocation() { }
+        public StageTableLocation(string path)
         {
-            Write(stages, location, settings);
-            if(location.DataLocationType == DataLocationTypes.Internal)
-                PatchStageTableLocation(location, settings, references);
+            Filename = path;
         }
-        public static void Write(IList<StageEntry> stages, StageTableLocation location, StageEntrySettings settings)
+        public StageTableLocation(StageTablePresets type)
         {
-            var size = StageTable.GetBufferSize(location.StageTableFormat, stages.Count, settings);
+            ResetToDefault(type);
+            Settings.ResetToDefault(type);
+        }
+        public StageTableLocation(string path, StageTablePresets type)
+        {
+            Filename = path;
+            ResetToDefault(type);
+            Settings.ResetToDefault(type);
+        }
+        public StageTableLocation(XmlElement xml)
+        {
+            //Filename = xml[nameof(Filename)].InnerText;
+            DataLocationType = (DataLocationTypes)Enum.Parse(typeof(DataLocationTypes), xml[nameof(DataLocationType)].InnerText);
+            Offset = int.Parse(xml[nameof(Offset)].InnerText);
+            SectionName = xml[nameof(SectionName)].InnerText;
+            FixedSize = bool.Parse(xml[nameof(FixedSize)].InnerText);
+            MaximumSize = int.Parse(xml[nameof(MaximumSize)].InnerText);
+
+            StageTableFormat = (StageTableFormats)Enum.Parse(typeof(StageTableFormats), xml[nameof(StageTableFormat)].InnerText);
+            StageCount = int.Parse(xml[nameof(StageCount)].InnerText);
+        }
+        public override XElement ToXML(string elementName, string relativeBase)
+        {
+            var x = base.ToXML(elementName,relativeBase);
+            x.Add(
+                new XElement(nameof(StageTableFormat), StageTableFormat),
+                new XElement(nameof(StageCount), StageCount)
+                );
+            return x;
+        }
+        public void ResetToDefault(StageTablePresets type)
+        {
+            switch (type)
+            {
+                case StageTablePresets.doukutsuexe:
+                    DataLocationType = DataLocationTypes.Internal;
+                    SectionName = "";
+                    Offset = StageTable.CSStageTableAddress;
+                    MaximumSize = StageTable.CSStageTableSize;
+                    FixedSize = true;
+                    StageTableFormat = StageTableFormats.normal;
+                    StageCount = StageTable.CSStageCount;
+                    break;
+                case StageTablePresets.swdata:
+                    DataLocationType = DataLocationTypes.Internal;
+                    SectionName = StageTable.SWDATASectionName;
+                    Offset = 0;
+                    MaximumSize = 0;
+                    FixedSize = false;
+                    StageTableFormat = StageTableFormats.swdata;
+                    StageCount = 0;
+                    break;
+                case StageTablePresets.csmap:
+                    DataLocationType = DataLocationTypes.Internal;
+                    SectionName = StageTable.CSMAPSectionName;
+                    Offset = 0;
+                    MaximumSize = 0;
+                    FixedSize = false;
+                    StageTableFormat = StageTableFormats.normal;
+                    StageCount = 0;
+                    break;
+                case StageTablePresets.stagetbl:
+                case StageTablePresets.mrmapbin:
+                    DataLocationType = DataLocationTypes.External;
+                    SectionName = "";
+                    Offset = 0;
+                    MaximumSize = type == StageTablePresets.stagetbl ? StageTable.STAGETBLSize : 0;
+                    FixedSize = false; //TODO check on the real limits of stage.tbl
+                    StageTableFormat = type == StageTablePresets.stagetbl ? StageTableFormats.normal : StageTableFormats.mrmapbin;
+                    StageCount = 0;
+                    break;
+                case StageTablePresets.custom:
+                    throw new ArgumentException("There is no preset for custom", nameof(type));
+            }
+        }
+
+        
+        public List<StageTableEntry> Read()
+        {
+            if (!TryCalculateEntryCount(Settings.Size, out int stageCount))
+                stageCount = StageCount;
+            using (var br = new BinaryReader(GetStream(FileMode.Open, FileAccess.Read)))
+            {
+                switch (StageTableFormat)
+                {
+                    case StageTableFormats.mrmapbin:
+                        stageCount = br.ReadInt32();
+                        goto case StageTableFormats.normal;
+                    case StageTableFormats.normal:
+                        return br.ReadStages(stageCount, Settings);
+                    case StageTableFormats.swdata:
+                        return br.ReadSWData(stageCount, Settings);
+                    default:
+                        throw new ArgumentException("Invalid stage table format!", nameof(StageTableFormat));
+                }
+            }
+        }
+        public void Write(IList<StageTableEntry> stages)
+        {
+            var size = StageTable.GetBufferSize(StageTableFormat, stages.Count, Settings);
             //stop if we're about to write too much data
-            if (location.MaximumSize > 0 && size > location.MaximumSize)
+            if (MaximumSize > 0 && size > MaximumSize)
                 throw new Exception($"The current stage table export settings result in a stage table that is {size} bytes large, " +
-                    $"which is {size - location.MaximumSize} over the maximum allowed size {location.MaximumSize}!");
+                    $"which is {size - MaximumSize} over the maximum allowed size {MaximumSize}!");
             var buffer = new byte[size];
 
             //if we're saving to an internal file, and need to go off of a section...
-            if (location.DataLocationType == DataLocationTypes.Internal && !string.IsNullOrEmpty(location.SectionName))
+            if (DataLocationType == DataLocationTypes.Internal && !string.IsNullOrEmpty(SectionName))
             {
-                PEFile pe = PEFile.FromFile(location.Filename);
+                PEFile pe = PEFile.FromFile(Filename);
                 //...but the requested section doesn't exist...
-                if (!pe.ContainsSection(location.SectionName))
+                if (!pe.ContainsSection(SectionName))
                 {
                     //...we might be able to fix it!
-                    switch (location.SectionName)
+                    switch (SectionName)
                     {
                         case StageTable.CSMAPSectionName:
                             pe.InsertSection(pe.sections.IndexOf(pe.GetSection(".rsrc")), new PESection(StageTable.CSMAPSectionHeader)
@@ -876,53 +771,56 @@ namespace CaveStoryModdingFramework.Stages
                             throw new KeyNotFoundException();
                     }
                     pe.UpdateSectionLayout();
-                    pe.WriteFile(location.Filename);
+                    pe.WriteFile(Filename);
                 }
             }
             using (var bw = new BinaryWriter(new MemoryStream(buffer)))
             {
-                switch (location.StageTableFormat)
+                switch (StageTableFormat)
                 {
                     case StageTableFormats.mrmapbin:
                         bw.Write((int)stages.Count);
-                        bw.WriteStages(stages, settings);
+                        bw.WriteStages(stages, Settings);
                         break;
                     case StageTableFormats.normal:
-                        bw.WriteStages(stages, settings);
+                        bw.WriteStages(stages, Settings);
                         break;
                     case StageTableFormats.swdata:
                         bw.Write(Encoding.ASCII.GetBytes(StageTable.SWDATAHeader));
-                        bw.WriteStages(stages, settings);
-                        bw.Write(Enumerable.Repeat<byte>(0xFF, settings.Size).ToArray());
+                        bw.WriteStages(stages, Settings);
+                        bw.Write(Enumerable.Repeat<byte>(0xFF, Settings.Size).ToArray());
                         break;
                 }
             }
-            DataLocation.Write(location, buffer);
+            Write(buffer);
+
+            if (DataLocationType == DataLocationTypes.Internal)
+                UpdateStageTableReferences();
         }
 
-        public static void PatchStageTableLocation(StageTableLocation location, StageEntrySettings settings, StageTableReferences r)
+        public void UpdateStageTableReferences()
         {
-            if (location.DataLocationType != DataLocationTypes.Internal)
-                throw new ArgumentException("Can only patch internal stage tables!", nameof(location.DataLocationType));
-            var pe = PEFile.FromFile(location.Filename);
+            if (DataLocationType != DataLocationTypes.Internal)
+                throw new ArgumentException("Can only patch internal stage tables!", nameof(DataLocationType));
+            var pe = PEFile.FromFile(Filename);
             uint startOfStageTable = pe.optionalHeader32.ImageBase;
             bool set = false;
-            if(!string.IsNullOrEmpty(location.SectionName))
+            if (!string.IsNullOrEmpty(SectionName))
             {
-                if (!pe.TryGetSection(location.SectionName, out var sect))
+                if (!pe.TryGetSection(SectionName, out var sect))
                     throw new KeyNotFoundException();
                 startOfStageTable += sect.VirtualAddress;
                 set = true;
             }
 
             //Opening the file the internal stage table is located in AT the stage table
-            using (var bw = new BinaryWriter(location.GetStream(FileMode.Open, FileAccess.ReadWrite)))
+            using (var bw = new BinaryWriter(GetStream(FileMode.Open, FileAccess.ReadWrite)))
             {
                 //if we aren't going off of a section name, then we add the current position
                 //this might not work in *every* case, but it can be circumvented by using the actual section name anyways, so...
-                if(!set)
+                if (!set)
                     startOfStageTable += (uint)bw.BaseStream.Position;
-                switch (location.StageTableFormat)
+                switch (StageTableFormat)
                 {
                     case StageTableFormats.swdata:
                         startOfStageTable += (uint)StageTable.SWDATAHeader.Length;
@@ -939,17 +837,39 @@ namespace CaveStoryModdingFramework.Stages
                         bw.Write(value);
                     }
                 }
-                UpdateAddressList(r.TilesetReferences, startOfStageTable);
-                UpdateAddressList(r.FilenameReferences, startOfStageTable += (uint)settings.TilesetNameBuffer);
-                UpdateAddressList(r.BackgroundTypeReferences, startOfStageTable += (uint)settings.FilenameBuffer);
-                UpdateAddressList(r.BackgroundNameReferences, startOfStageTable += (uint)Marshal.SizeOf(settings.BackgroundTypeType));
-                UpdateAddressList(r.Spritesheet1References, startOfStageTable += (uint)settings.BackgroundNameBuffer);
-                UpdateAddressList(r.Spritesheet2References, startOfStageTable += (uint)settings.Spritesheet1Buffer);
-                UpdateAddressList(r.BossNumberReferences, startOfStageTable += (uint)settings.Spritesheet2Buffer);
-                UpdateAddressList(r.JapaneseNameReferences, startOfStageTable += (uint)Marshal.SizeOf(settings.BossNumberType));
-                UpdateAddressList(r.MapNameReferences, startOfStageTable += (uint)settings.JapaneseNameBuffer);
+                UpdateAddressList(References.TilesetReferences, startOfStageTable);
+                UpdateAddressList(References.FilenameReferences, startOfStageTable += (uint)Settings.TilesetNameBuffer);
+                UpdateAddressList(References.BackgroundTypeReferences, startOfStageTable += (uint)Settings.FilenameBuffer);
+                UpdateAddressList(References.BackgroundNameReferences, startOfStageTable += (uint)Marshal.SizeOf(Settings.BackgroundTypeType));
+                UpdateAddressList(References.Spritesheet1References, startOfStageTable += (uint)Settings.BackgroundNameBuffer);
+                UpdateAddressList(References.Spritesheet2References, startOfStageTable += (uint)Settings.Spritesheet1Buffer);
+                UpdateAddressList(References.BossNumberReferences, startOfStageTable += (uint)Settings.Spritesheet2Buffer);
+                UpdateAddressList(References.JapaneseNameReferences, startOfStageTable += (uint)Marshal.SizeOf(Settings.BossNumberType));
+                UpdateAddressList(References.MapNameReferences, startOfStageTable += (uint)Settings.JapaneseNameBuffer);
             }
         }
-#endregion
+
+        public override bool Equals(object obj)
+        {
+            if (obj is StageTableLocation l)
+            {
+                return base.Equals(l) &&
+                    StageTableFormat == l.StageTableFormat &&
+                    StageCount == l.StageCount &&
+                    Settings.Equals(l.Settings) &&
+                    References.Equals(l.References);
+            }
+            else return base.Equals(obj);
+        }
+        public override int GetHashCode()
+        {
+            return (2 * DataLocationType.GetHashCode()) +
+                (3 * SectionName.GetHashCode()) +
+                (5 * Offset.GetHashCode()) +
+                (7 * MaximumSize.GetHashCode()) +
+                (11 * FixedSize.GetHashCode()) +
+                (13 * StageTableFormat.GetHashCode()) +
+                (17 * StageCount.GetHashCode());
+        }
     }
 }

@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <ProjectGuid>{00C92507-872A-47C4-A632-6946B0F0935E}</ProjectGuid>
-    <TargetFrameworks>netstandard2.0;net461;netcoreapp3.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net461;netcoreapp3.1</TargetFrameworks>
     <AssemblyTitle>CaveStoryModdingFramework</AssemblyTitle>
     <Product>CaveStoryModdingFramework</Product>
     <Copyright>Copyright ©  2020</Copyright>

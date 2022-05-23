@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -146,13 +147,21 @@ namespace CaveStoryModdingFramework.Entities
     public static class PXE
     {
         public const string DefaultExtension = "pxe";
-        const string DefaultHeader = "PXE\0";
-        public static List<Entity> Read(string path, string header = DefaultHeader)
+        public static byte[] DefaultHeader = new byte[] { (byte)'P', (byte)'X', (byte)'E' };
+        public static byte[] DefaultPostHeader = new byte[] { 0x00 };
+        public static List<Entity> Read(string path)
+        {
+            return Read(path, DefaultHeader, DefaultPostHeader);
+        }
+        public static List<Entity> Read(string path, byte[] header, byte[] postHeader)
         {
             using(var br = new BinaryReader(new FileStream(path, FileMode.Open, FileAccess.Read)))
             {
-                if (Encoding.ASCII.GetString(br.ReadBytes(header.Length)) != header)
+                var actual = br.ReadBytes(header.Length);
+                if (!actual.SequenceEqual(header))
                     throw new FileLoadException(); //TODO message n stuff
+                _ = br.ReadBytes(postHeader.Length);
+                //TODO put warning for postheader fail?
                 var length = br.ReadInt32();
                 var ents = new List<Entity>(length);
                 for (int i = 0; i < length; i++)
@@ -168,11 +177,17 @@ namespace CaveStoryModdingFramework.Entities
             }
         }
 
-        public static void Write(IList<Entity> input, string path, string header = DefaultHeader)
+        public static void Write(IList<Entity> input, string path)
+        {
+            Write(input, path, DefaultHeader, DefaultPostHeader);
+        }
+
+        public static void Write(IList<Entity> input, string path, byte[] header, byte[] postHeader)
         {
             using(var bw = new BinaryWriter(new FileStream(path, FileMode.OpenOrCreate, FileAccess.Write)))
             {
-                bw.Write(Encoding.ASCII.GetBytes(header));
+                bw.Write(header);
+                bw.Write(postHeader);
                 bw.Write(input.Count);
                 foreach(var ent in input)
                 {

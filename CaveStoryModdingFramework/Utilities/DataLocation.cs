@@ -12,31 +12,44 @@ namespace CaveStoryModdingFramework
         Internal,
         External
     }
+    /// <summary>
+    /// Describes how data is layed out in file
+    /// </summary>
     public class DataLocation : PropertyChangedHelper
     {
+        #region Properties
+
         string filename, sectionName;
         DataLocationTypes dataLocationType;
         bool fixedSize;
         int offset, maximumSize;
 
         public string Filename { get => filename; set => SetVal(ref filename, value); }
+        /// <summary>
+        /// Is the data inside an exe, or in its own file?
+        /// </summary>
         public DataLocationTypes DataLocationType { get => dataLocationType; set => SetVal(ref dataLocationType, value); }
 
+        /// <summary>
+        /// How many bytes away from the start of the file/section this data is
+        /// </summary>
         public int Offset { get => offset; set => SetVal(ref offset, value); }
 
         /// <summary>
-        /// empty string/null = no section/start of file
+        /// What PE section this data belongs in. empty string/null = no section/start of file
         /// </summary>
         public string SectionName { get => sectionName; set => SetVal(ref sectionName, value); }
 
         /// <summary>
-        /// If set, always write either MaximumSize bytes, or enough bytes to overwrite SectionName completely
+        /// If set, always write either MaximumSize bytes, or enough bytes to overwrite the desired "SectionName" completely
         /// </summary>
         public bool FixedSize { get => fixedSize; set => SetVal(ref fixedSize, value); }
         /// <summary>
-        /// val <= 0 = no maximum
+        /// The maximum space this data has. Any value <= 0 means "no maximum"
         /// </summary>
         public int MaximumSize { get => maximumSize; set => SetVal(ref maximumSize, value); }
+
+        #endregion
 
         public static string GetSectionHeaderSafeName(string value)
         {
@@ -64,58 +77,66 @@ namespace CaveStoryModdingFramework
         }
         public Stream GetStream(FileMode mode, FileAccess access)
         {
-            if (!File.Exists(Filename))
-                throw new FileNotFoundException();
             var offset = Math.Max(0, Offset);
-
-            FileStream fs = null;
+            var fs = new FileStream(filename, mode, access);
             switch (DataLocationType)
             {
                 case DataLocationTypes.Internal:
                     //for internal data, we might need to go to the PE section and add its offset
                     if (!string.IsNullOrEmpty(SectionName))
-                        offset += (int)GetSection().PhysicalAddress;
+                    {
+                        try
+                        {
+                            var p = PEFile.FromStream(fs);
+                            offset += (int)p.GetSection(SectionName).PhysicalAddress;
+                        }
+                        catch
+                        {
+                            //don't want to leave the file open if something went wrong...
+                            fs.Close();
+                            throw new Exception("Something went wrong while getting the section...");
+                        }
+                    }
                     //but other than that it's the same code to get a stream
                     goto case DataLocationTypes.External;
                 case DataLocationTypes.External:
-                    fs = new FileStream(Filename, mode, access);
                     fs.Seek(offset, SeekOrigin.Begin);
                     break;
             }
             return fs;
         }
-        public static byte[] Read(DataLocation location, int length)
+        public byte[] Read(int length)
         {
-            if (!File.Exists(location.Filename))
+            if (!File.Exists(Filename))
                 throw new FileNotFoundException();
-            using(var br = new BinaryReader(location.GetStream(FileMode.Open, FileAccess.Read)))
+            using(var br = new BinaryReader(GetStream(FileMode.Open, FileAccess.Read)))
             {
                 return br.ReadBytes(length);
-            }            
+            }
         }
-        public static void Write(DataLocation location, byte[] data)
+        public void Write(byte[] data)
         {
             //don't write if the data exceeds the max
-            if (location.MaximumSize > 0 && data.Length > location.MaximumSize)
+            if (MaximumSize > 0 && data.Length > MaximumSize)
                 throw new ArgumentOutOfRangeException();
 
-            var offset = Math.Max(0, location.Offset);
+            var offset = Math.Max(0, Offset);
             var fileMode = FileMode.Create;
-            var fixedSize = location.FixedSize;
-            var fixedSizeMakeupLength = location.MaximumSize - data.Length;
+            var fixedSize = FixedSize;
+            var fixedSizeMakeupLength = MaximumSize - data.Length;
 
-            switch (location.DataLocationType)
+            switch (DataLocationType)
             {
                 case DataLocationTypes.Internal:
                     //can't write to internal data if the file doesn't exist
-                    if (!File.Exists(location.Filename))
+                    if (!File.Exists(Filename))
                         throw new FileNotFoundException();
                                         
                     //grab the requested section where applicable
-                    if(!string.IsNullOrEmpty(location.SectionName))
+                    if(!string.IsNullOrEmpty(SectionName))
                     {
-                        var pe = PEFile.FromFile(location.Filename);
-                        if (!pe.TryGetSection(location.SectionName, out var sect))
+                        var pe = PEFile.FromFile(Filename);
+                        if (!pe.TryGetSection(SectionName, out var sect))
                             throw new KeyNotFoundException();
 #if COMPARE_SECTION_SIZES
                         var nextSect = pe.sections[pe.sections.IndexOf(sect) + 1];
@@ -123,7 +144,7 @@ namespace CaveStoryModdingFramework
                         offset += (int)sect.PhysicalAddress;
 
                         //if we were told to write at the *very* start of the section...
-                        if (location.Offset <= 0)
+                        if (Offset <= 0)
                         {
                             //...we must be overwriting ALL the data
                             fixedSize = true;
@@ -140,10 +161,10 @@ namespace CaveStoryModdingFramework
 #endif
                             {
                                 //TODO I have some uncertainty about this line but I don't know why
-                                pe.WriteSectionData(location.SectionName, data);
+                                pe.WriteSectionData(SectionName, data);
 
                                 pe.UpdateSectionLayout();
-                                pe.WriteFile(location.Filename);
+                                pe.WriteFile(filename);
                                 return;
                             }
                             //otherwise we can just use the function below
@@ -153,19 +174,27 @@ namespace CaveStoryModdingFramework
                     fileMode = FileMode.Open;
                     goto case DataLocationTypes.External;
                 case DataLocationTypes.External:
-                    using (var bw = new BinaryWriter(new FileStream(location.Filename, fileMode, FileAccess.Write)))
+                    using (var bw = new BinaryWriter(new FileStream(filename, fileMode, FileAccess.Write)))
                     {
                         bw.Seek(offset, SeekOrigin.Begin);
                         bw.Write(data);
                         //write 00s to fill space when needed
-                        if (location.FixedSize && fixedSizeMakeupLength > 0)
+                        if (FixedSize && fixedSizeMakeupLength > 0)
                             bw.Write(new byte[fixedSizeMakeupLength]);
                     }
                     break;
             }
         }
 
-        public bool TryCalculateEntryCount(int entrySize, out int size)
+        /// <summary>
+        /// If your data is in distinct chunks, try to calculate how many chunks this data has
+        /// </summary>
+        /// <param name="filename">File to open</param>
+        /// <param name="entrySize">Size of each chunk</param>
+        /// <param name="entryCount">Output for number of entries</param>
+        /// <returns>Whether the opporation succeeded</returns>
+        /// <exception cref="ArgumentException"></exception>
+        protected bool TryCalculateEntryCount(int entrySize, out int entryCount)
         {
             //an offset of 0 (or less) means we're probably using the whole section/file...
             if (Offset <= 0)
@@ -175,16 +204,16 @@ namespace CaveStoryModdingFramework
                     case DataLocationTypes.Internal:
                         //if it's a section, use the length of it
                         if (!string.IsNullOrEmpty(SectionName))
-                            size = (int)(GetSection().RawSize / entrySize);
+                            entryCount = (int)(GetSection().RawSize / entrySize);
                         //if we get here that means we just
                         //have the data right at the beginning of the entire file...?!
                         else
-                            throw new ArgumentException("There's no way your data is at the *very* start of an exe...?!",
+                            throw new ArgumentException("Your data is at the *very* start of an exe...?!",
                                 $"{nameof(Offset)}, {nameof(SectionName)}");
                         break;
                     //if it's a file, use the length of that
                     case DataLocationTypes.External:
-                        size = (int)(new FileInfo(Filename).Length / entrySize);
+                        entryCount = (int)(new FileInfo(filename).Length / entrySize);
                         break;
                     default:
                         throw new ArgumentException($"Invalid {nameof(DataLocationType)}: {DataLocationType}", nameof(DataLocationType));
@@ -193,9 +222,23 @@ namespace CaveStoryModdingFramework
             }
             else
             {
-                size = -1;
+                entryCount = -1;
                 return false;
             }
+        }
+
+        public override bool Equals(object obj)
+        {
+            if(obj is DataLocation dl)
+            {
+                return DataLocationType == dl.DataLocationType
+                    && SectionName == dl.SectionName
+                    && Offset == dl.Offset
+                    && MaximumSize == dl.MaximumSize
+                    && FixedSize == dl.FixedSize;
+            }
+            else
+                return base.Equals(obj);
         }
 
         public virtual XElement ToXML(string elementName, string relativeBase)

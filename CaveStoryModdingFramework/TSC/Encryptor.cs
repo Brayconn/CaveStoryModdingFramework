@@ -27,6 +27,24 @@ namespace CaveStoryModdingFramework.TSC
             }
         }
 
+        public static void DecryptInPlace(Stream stream, byte defaultKey = DefaultKey)
+        {
+            if (stream.Length == 0)
+                return;
+            stream.Position = stream.Length / 2;
+            var key = (byte)stream.ReadByte();
+            if (key == 0)
+                key = defaultKey;
+            stream.Position = 0;
+            for (int i = 0; i < stream.Length; i++)
+            {
+                var curr = (byte)(stream.ReadByte() - key);
+                stream.Position--;
+                stream.WriteByte(curr);
+            }
+            stream.Position = stream.Length / 2;
+            stream.WriteByte(key);
+        }
         public static void DecryptInPlace<T>(T input, byte defaultKey = DefaultKey) where T : IList<byte>
         {
             if (input.Count == 0)
