@@ -1,0 +1,6 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<CaveStoryTestData>
+	<Name>french</Name>
+	<URL>https://www.cavestory.org/downloads/cave_story_fr_1_11.zip</URL>
+	<DownloadMethod>DirectArchive</DownloadMethod>
+</CaveStoryTestData>

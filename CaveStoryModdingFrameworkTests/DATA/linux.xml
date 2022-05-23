@@ -1,0 +1,6 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<CaveStoryTestData>
+	<Name>linux</Name>
+	<URL>https://www.cavestory.org/downloads/linuxdoukutsu-1.01.tar.bz2</URL>
+	<DownloadMethod>DirectArchive</DownloadMethod>
+</CaveStoryTestData>

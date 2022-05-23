@@ -1,0 +1,6 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<CaveStoryTestData>
+	<Name>rando_open</Name>
+	<URL>https://github.com/cave-story-randomizer/cave-story-randomizer/archive/refs/heads/patcher.zip</URL>
+	<DownloadMethod>DirectArchive</DownloadMethod>
+</CaveStoryTestData>
