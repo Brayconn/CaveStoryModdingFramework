@@ -128,7 +128,11 @@ namespace CaveStoryModdingFramework.TSC
             new Command("<FNJ", "Flag NotJump", "Jump if X is not set.", ArgumentTypes.NpcFlags, ArgumentTypes.Event){ Author = "Noxid" },
             new Command("<VAR", "VARiable set", "Puts X into variable W", ArgumentTypes.Number, ArgumentTypes.Number){ Author = "Noxid" },
             new Command("<VAZ", "VAriable Zero", "Zeros X variables, starting at variable W", ArgumentTypes.Number, ArgumentTypes.Number){ Author = "Noxid" },
-            new Command("<VAO", "VAriable Operation", "Performs operation $ on W using X", ArgumentTypes.Number, ArgumentTypes.Number){ Author = "Noxid" },
+            new Command("<VAO", "VAriable Operation", "Performs operation $ on W using X",
+                new Argument("Variable", ArgumentTypes.Number,""),
+                new Argument("Operation", 1, ArgumentTypes.Number,""), //TODO use a local enum for this
+                new Argument("Value", ArgumentTypes.Number,"")
+                ){ Author = "Noxid" },
             new Command("<VAJ", "VAriable Jump", "Compare X to W using method Y, if true jump to Z", ArgumentTypes.Number, ArgumentTypes.Number, ArgumentTypes.Number, ArgumentTypes.Event){ Author = "Noxid" },
             new Command("<RND", "RaNdoM", "Puts random # between W (min) and X (max) into variable Y", ArgumentTypes.Number, ArgumentTypes.Number, ArgumentTypes.Number){ Author = "Noxid" },
             new Command("<IMG", "tIMaGe", "Will set TimgFILE.bmp over the screen. The \"tag\" for the file name must be exactly 4 characters", ArgumentTypes.ASCII){ Author = "Noxid" },
@@ -173,7 +177,8 @@ namespace CaveStoryModdingFramework.TSC
                 new Argument("xm", ""), new Argument("ym", ""), new Argument("dir", ArgumentTypes.Direction, ""), new Argument("parent", ""), new Argument("draw order", "")){ Author = "Txin" },
             new Command("<BSC", "Boss Script load Complex", "Custom boss health bar", ArgumentTypes.Number, new RepeatStructure(RepeatTypes.GlobalIndex, 0, "Boss", ArgumentTypes.NPCEvent)){ Author = "Txin" },
             new Command("<MBI", "My Bump (I?)", "Unknown", ArgumentTypes.Number){ Author = "Txin" },
-            new Command("<CEX", "Create EXplosion", "Create an epxlosion", new Argument(ArgumentTypes.XCoord, ""), new Argument(ArgumentTypes.YCoord,""), new Argument(ArgumentTypes.Direction, "")){ Author = "Txin" },
+            new Command("<CEX", "Create EXplosion", "Create an epxlosion",
+                new Argument(ArgumentTypes.XCoord, ""), new Argument(ArgumentTypes.YCoord,""), new Argument(ArgumentTypes.Direction, "")){ Author = "Txin" },
             new Command("<TXC", "TeXt Colour", "Set the text colour to the integer value X", new Argument("Colour", 8, ArgumentTypes.Number)){ Author = "Txin" },
         };
     }
