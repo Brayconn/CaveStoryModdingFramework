@@ -2,22 +2,30 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Xml.Serialization;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace CaveStoryModdingFrameworkTests
 {
     public class UserEnumTests
     {
+        private readonly ITestOutputHelper output;
+        public UserEnumTests(ITestOutputHelper output)
+        {
+            this.output = output;
+        }
+
         public class SerializeTests : IEnumerable<object[]>
         {
             UserEnum[] enums = new UserEnum[]
             {
             new UserEnum("Empty",null),
-            new UserEnum("DefaultOnly","Default"),
-            new UserEnum("SingleOnly","Default", new SingleMap(0,"Zero")),
-            new UserEnum("RangeOnly","Default", new RangeMap(0,1,"0-1")),
-            new UserEnum("InfiniteOnly","Default", new InfiniteMap(0, Directions.Positive, "0-infinity")),
+            new UserEnum("DefaultOnly",new UserEnumValue("Default")),
+            new UserEnum("SingleOnly",new UserEnumValue("Default"), new SingleMap(0,"Zero")),
+            new UserEnum("RangeOnly",new UserEnumValue("Default"), new RangeMap(0,1,"0-1")),
+            new UserEnum("InfiniteOnly",new UserEnumValue("Default"), new InfiniteMap(0, Directions.Positive, "0-infinity")),
             };
             public IEnumerator<object[]> GetEnumerator()
             {
@@ -38,6 +46,8 @@ namespace CaveStoryModdingFrameworkTests
                 
                 x.Serialize(m, e);
                 m.Position = 0;
+
+                output.WriteLine(Encoding.ASCII.GetString(m.ToArray()));
 
                 var o = (UserEnum)x.Deserialize(m);
 
