@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Xml.Serialization;
 
 namespace CaveStoryModdingFramework
@@ -49,14 +50,49 @@ namespace CaveStoryModdingFramework
     [DebuggerDisplay("{DataPaths[DataPaths.Count-1]}")]
     public class AssetLayout
     {
+        /// <summary>
+        /// Search from end to start
+        /// </summary>
         public List<string> DataPaths { get; set; } = new List<string>();
+        /// <summary>
+        /// Search from end to start
+        /// </summary>
         public List<string> StagePaths { get; set; } = new List<string>();
+        /// <summary>
+        /// Search from end to start
+        /// </summary>
         public List<string> NpcPaths { get; set; } = new List<string>();
 
         public List<TableLoadInfo> StageTables { get; set; } = new List<TableLoadInfo>();
         public List<TableLoadInfo> NpcTables { get; set; } = new List<TableLoadInfo>();
         public List<TableLoadInfo> BulletTables { get; set; } = new List<TableLoadInfo>();
         public List<TableLoadInfo> ArmsLevelTables { get; set; } = new List<TableLoadInfo>();
+
+        /// <summary>
+        /// Search for the given filename in the given list of directories
+        /// </summary>
+        /// <param name="paths">The list paths to search</param>
+        /// <param name="filename">The filename to search for</param>
+        /// <param name="foundFiles">The list of files found (case insensitive)</param>
+        /// <param name="searchAll">Whether or not to search all directories, instead of stopping at the first found one</param>
+        /// <returns>Whether or not an exact match was found (case sensitive)</returns>
+        public bool SearchForFile(List<string> paths, string filename, out List<string> foundFiles, bool searchAll = false)
+        {
+            foundFiles = new List<string>();
+            bool foundExact = false;
+            for(int i = paths.Count - 1; i >= 0; i--)
+            {
+                foreach(var file in Extensions.EnumerateFilesCaseInsensitive(paths[i], filename))
+                {
+                    if(Path.GetFileName(file) == filename)
+                        foundExact = true;
+                    foundFiles.Add(file);
+                }
+                if (!searchAll && foundFiles.Count > 0)
+                    break;
+            }
+            return foundExact;
+        }
 
         public int TileSize { get; set; } = 16;
 
@@ -65,28 +101,28 @@ namespace CaveStoryModdingFramework
         public AssetLayout() { }
         public AssetLayout(AssetLayout parent, bool forceReadonly = false)
         {
-            void copy(List<string> orig, List<string> other)
+            void DeepCopyStrings(List<string> orig, List<string> other)
             {
                 foreach(var item in other)
                 {
                     orig.Add(item);
                 }
             }
-            copy(DataPaths, parent.DataPaths);
-            copy(StagePaths, parent.StagePaths);
-            copy(NpcPaths, parent.NpcPaths);
+            DeepCopyStrings(DataPaths, parent.DataPaths);
+            DeepCopyStrings(StagePaths, parent.StagePaths);
+            DeepCopyStrings(NpcPaths, parent.NpcPaths);
 
-            void copy2(List<TableLoadInfo> orig, List<TableLoadInfo> other)
+            void DeepCopyTableLoadInfos(List<TableLoadInfo> orig, List<TableLoadInfo> other)
             {
                 foreach (var item in other)
                 {
                     orig.Add(new TableLoadInfo(item.Key, !forceReadonly && item.Write));
                 }
             }
-            copy2(StageTables, parent.StageTables);
-            copy2(NpcTables, parent.NpcTables);
-            copy2(BulletTables, parent.BulletTables);
-            copy2(ArmsLevelTables, parent.ArmsLevelTables);
+            DeepCopyTableLoadInfos(StageTables, parent.StageTables);
+            DeepCopyTableLoadInfos(NpcTables, parent.NpcTables);
+            DeepCopyTableLoadInfos(BulletTables, parent.BulletTables);
+            DeepCopyTableLoadInfos(ArmsLevelTables, parent.ArmsLevelTables);
         }
         public override bool Equals(object obj)
         {
@@ -101,11 +137,11 @@ namespace CaveStoryModdingFramework
             else return base.Equals(obj);
         }
     }
+    [DebuggerDisplay("{BaseDataPath}")]
     public class ProjectFile
     {
         public const string Extension = "cav";
 
-        //These are both relative to the project file's path
         public string BaseDataPath { get; set; }
         public string EXEPath { get; set; }
 
@@ -133,12 +169,13 @@ namespace CaveStoryModdingFramework
         
 
         public bool UseScriptSource { get; set; }
+        public Encoding ScriptEncoding { get; set; } = Encoding.ASCII;
         public bool ScriptsEncrypted { get; set; }
         //divide the length of the tsc file by this number to find the TSC decryption key
         //there are two whole people who will find this useful :smile_eol:
         public int ScriptKeyLocation { get; set; } = 2;
         //when the key at FileSize/ScriptKeyLocation is 0, use this value instead
-        public int DefaultEncryptionKey { get; set; } = 7;
+        public byte DefaultEncryptionKey { get; set; } = 7;
 
         //needs to be diffed with the global list?
         public SerializableDictionary<string, Command> ScriptCommands { get; set; }
@@ -146,8 +183,41 @@ namespace CaveStoryModdingFramework
         public int ScreenWidth { get; set; } = 320;
         public int ScreenHeight { get; set; } = 240;
 
-        public List<AssetLayout> Layouts { get; set; } = new List<AssetLayout>();
+        public SerializableDictionary<int, EntityInfo> EntityInfos { get; } = new SerializableDictionary<int, EntityInfo>(EntityList.EntityInfos);
 
+        public int SelectedLayoutIndex { get; set; } = 0;
+        public List<AssetLayout> Layouts { get; set; } = new List<AssetLayout>();
+        public AssetLayout SelectedLayout => (0 <= SelectedLayoutIndex && SelectedLayoutIndex < Layouts.Count) ? Layouts[SelectedLayoutIndex] : null;
+
+        #region table adding/reading/writing
+        public void AddTables(ExternalTables externalTables)
+        {
+            void AddExternalTables<T>(List<T> tables, Dictionary<string, T> dest) where T : DataLocation
+            {
+                foreach (var result in tables)
+                    dest.Add(AssetManager.MakeRelative(BaseDataPath, result.Filename), result);
+            }
+            AddExternalTables(externalTables.StageTables, StageTables);
+            AddExternalTables(externalTables.NpcTables, NPCTables);
+            AddExternalTables(externalTables.BulletTables, BulletTables);
+            AddExternalTables(externalTables.ArmsLevelTables, ArmsLevelTables);
+        }
+        public void AddTables(ExternalTables externalTables, AssetLayout layout)
+        {
+            void AddExternalTables<T>(List<T> tables, Dictionary<string, T> dest, List<TableLoadInfo> l) where T : DataLocation
+            {
+                foreach (var result in tables)
+                {
+                    var key = AssetManager.MakeRelative(BaseDataPath, result.Filename);
+                    dest.Add(key, result);
+                    l.Add(new TableLoadInfo(key, true));
+                }
+            }
+            AddExternalTables(externalTables.StageTables, StageTables, layout.StageTables);
+            AddExternalTables(externalTables.NpcTables, NPCTables, layout.NpcTables);
+            AddExternalTables(externalTables.BulletTables, BulletTables, layout.BulletTables);
+            AddExternalTables(externalTables.ArmsLevelTables, ArmsLevelTables, layout.ArmsLevelTables);
+        }
         public List<T> GetTables<T>(Dictionary<string, T> dict, List<TableLoadInfo> loadInfos) where T : DataLocation
         {
             var tables = new List<T>(loadInfos.Count);
@@ -194,11 +264,69 @@ namespace CaveStoryModdingFramework
                 }
             }
         }
+        #endregion
+
+        #region Getting assets from the Asset Layout
+        bool GetAsset(string fullname, List<string> searchPaths, out List<string> foundFiles)
+        {
+            if(SelectedLayout != null && searchPaths != null)
+            {
+                return SelectedLayout.SearchForFile(searchPaths, fullname, out foundFiles);
+            }
+            else
+            {
+                foundFiles = null;
+                return false;
+            }
+        }
+        //background -> data (value + extension)
+        public bool GetBackground(string name, out List<string> foundFiles)
+        {
+            return GetAsset(Path.ChangeExtension(name, ImageExtension),
+                SelectedLayout?.DataPaths, out foundFiles);
+        }
+        //tileset -> stage (prefix + value + extension)
+        public bool GetTileset(string name, out List<string> foundFiles)
+        {
+            return GetAsset(Path.ChangeExtension(TilesetPrefix + name, ImageExtension),
+                SelectedLayout?.StagePaths, out foundFiles);
+        }
+        //attribute -> stage (value + extension)
+        public bool GetAttributes(string name, out List<string> foundFiles)
+        {
+            return GetAsset(Path.ChangeExtension(name, AttributeExtension),
+                SelectedLayout?.StagePaths, out foundFiles);
+        }
+        //filename(s) -> stage (value + extension)
+        public bool GetTiles(string name, out List<string> foundFiles)
+        {
+            return GetAsset(Path.ChangeExtension(name, MapExtension),
+                SelectedLayout?.StagePaths, out foundFiles);
+        }
+        public bool GetEntities(string name, out List<string> foundFiles)
+        {
+            return GetAsset(Path.ChangeExtension(name, EntityExtension),
+                SelectedLayout?.StagePaths, out foundFiles);
+        }
+        public bool GetScript(string name, out List<string> foundFiles)
+        {
+            return GetAsset(Path.ChangeExtension(name, ScriptExtension),
+                SelectedLayout?.StagePaths, out foundFiles);
+        }
+        //spritesheet(s) -> npc (prefix + value + extension)
+        public bool GetSpritesheet(string name, out List<string> foundFiles)
+        {
+            return GetAsset(Path.ChangeExtension(SpritesheetPrefix + name, ImageExtension),
+                SelectedLayout?.NpcPaths, out foundFiles);
+        }
+        #endregion
 
         /// <summary>
         /// Creates an empty project
         /// </summary>
         public ProjectFile() { }
+
+        #region New/Load/Save
 
         /// <summary>
         /// Loads a project from the given path
@@ -358,6 +486,7 @@ namespace CaveStoryModdingFramework
                 RestoreLocations(oldArmsLevelTableNames, ArmsLevelTables);
             }
         }
+        #endregion
 
         public override bool Equals(object obj)
         {
@@ -375,35 +504,6 @@ namespace CaveStoryModdingFramework
             }
             else
                 return base.Equals(obj);
-        }
-
-        public void Add(ExternalTables externalTables)
-        {
-            void AddExternalTables<T>(List<T> tables, Dictionary<string, T> dest) where T : DataLocation
-            {
-                foreach (var result in tables)
-                    dest.Add(AssetManager.MakeRelative(BaseDataPath, result.Filename), result);
-            }
-            AddExternalTables(externalTables.StageTables, StageTables);
-            AddExternalTables(externalTables.NpcTables, NPCTables);
-            AddExternalTables(externalTables.BulletTables, BulletTables);
-            AddExternalTables(externalTables.ArmsLevelTables, ArmsLevelTables);
-        }
-        public void Add(ExternalTables externalTables, AssetLayout layout)
-        {
-            void AddExternalTables<T>(List<T> tables, Dictionary<string, T> dest, List<TableLoadInfo> l) where T : DataLocation
-            {
-                foreach (var result in tables)
-                {
-                    var key = AssetManager.MakeRelative(BaseDataPath, result.Filename);
-                    dest.Add(key, result);
-                    l.Add(new TableLoadInfo(key, true));
-                }
-            }
-            AddExternalTables(externalTables.StageTables, StageTables, layout.StageTables);
-            AddExternalTables(externalTables.NpcTables, NPCTables, layout.NpcTables);
-            AddExternalTables(externalTables.BulletTables, BulletTables, layout.BulletTables);
-            AddExternalTables(externalTables.ArmsLevelTables, ArmsLevelTables, layout.ArmsLevelTables);
         }
     }
 }
