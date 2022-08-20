@@ -8,6 +8,12 @@ using System.Xml;
 
 namespace CaveStoryModdingFramework.Entities
 {
+    public enum PXECompatability
+    {
+        Full,
+        Partial,
+        Crash
+    }
     [DebuggerDisplay("Name = {Name}")]
     public class EntityInfo : IXmlSerializable
     {
@@ -18,21 +24,23 @@ namespace CaveStoryModdingFramework.Entities
         public string Category { get; set; }
 
         public bool SetsFlagWhenKilledByPlayer { get; set; } = true;
+        public PXECompatability PXEFunctionality { get; set; } = PXECompatability.Full;
         
+        public Dictionary<int, string> Animations { get; set; } = new Dictionary<int, string>();
+
         public EntityInfo()
         {
 
         }
-        public EntityInfo(string name, Rectangle spriteLocation, bool setsFlagOnDeath) : this(name,spriteLocation,"", setsFlagOnDeath)
+        public EntityInfo(string name, Rectangle spriteLocation) : this(name,spriteLocation,"")
         {
 
         }
-        public EntityInfo(string name, Rectangle spriteLocation, string category = "", bool setsFlagOnDeath = true)
+        public EntityInfo(string name, Rectangle spriteLocation, string category = "")
         {
             Name = name;
             Category = category;
             SpriteLocation = spriteLocation;
-            SetsFlagWhenKilledByPlayer = setsFlagOnDeath;
         }
 
         public XmlSchema GetSchema() => null;
@@ -95,7 +103,7 @@ namespace CaveStoryModdingFramework.Entities
             {32,new EntityInfo("Life Capsule",new Rectangle(32,96,16,16))},
             {33,new EntityInfo("Balrog energy ball bouncing (projectile)",new Rectangle(240,80,16,16))},
             {34,new EntityInfo("Bed",new Rectangle(192,48,32,16))},
-            {35,new EntityInfo("Mannan (enemy)",new Rectangle(96,64,24,32),false)},
+            {35,new EntityInfo("Mannan (enemy)",new Rectangle(96,64,24,32)){ SetsFlagWhenKilledByPlayer=false } },
             {36,new EntityInfo("Balrog, Flying (boss)",new Rectangle(0,0,40,24))},
             {37,new EntityInfo("Signpost",new Rectangle(192,64,16,16))},
             {38,new EntityInfo("Fireplace",new Rectangle(128,64,16,16))},
@@ -104,7 +112,7 @@ namespace CaveStoryModdingFramework.Entities
             {41,new EntityInfo("Busted doorway",new Rectangle(0,0,0,0))},
             {42,new EntityInfo("Sue",new Rectangle(0,0,16,16))},
             {43,new EntityInfo("Blackboard/Table",new Rectangle(128,80,40,32))},
-            {44,new EntityInfo("Polish (enemy)",new Rectangle(0,0,32,32), false)},
+            {44,new EntityInfo("Polish (enemy)",new Rectangle(0,0,32,32)){SetsFlagWhenKilledByPlayer=false} },
             {45,new EntityInfo("Baby (enemy)",new Rectangle(16,32,16,16))},
             {46,new EntityInfo("H/V Trigger",new Rectangle(0,0,0,0))},
             {47,new EntityInfo("Sandcroc, Green (enemy)",new Rectangle(153,47,35,33))},
@@ -113,7 +121,7 @@ namespace CaveStoryModdingFramework.Entities
             {50,new EntityInfo("Bone (projectile)",new Rectangle(48,32,16,16))},
             {51,new EntityInfo("Crow & Skullhead (enemy)",new Rectangle(64,80,62,22))},
             {52,new EntityInfo("Blue Robot, sitting",new Rectangle(240,96,16,16))},
-            {53,new EntityInfo("Skullstep Leg (enemy)",new Rectangle(0,0,0,0))},
+            {53,new EntityInfo("Skullstep Leg (enemy)",new Rectangle(0,0,0,0)){ PXEFunctionality=PXECompatability.Crash } },
             {54,new EntityInfo("Skullstep (enemy)",new Rectangle(32,80,32,22))},
             {55,new EntityInfo("Kazuma",new Rectangle(192,192,16,24))},
             {56,new EntityInfo("Beetle, Horizontal Brown (enemy)",new Rectangle(0,142,16,16))},
@@ -185,7 +193,7 @@ namespace CaveStoryModdingFramework.Entities
             {122,new EntityInfo("Colon (enemy)",new Rectangle(80,0,16,16))},
             {123,new EntityInfo("Curly Machine Gun bullet (projectile)",new Rectangle(192,0,16,16))},
             {124,new EntityInfo("Sunstone",new Rectangle(192,0,31,32))},
-            {125,new EntityInfo("Hidden Heart/Missile",new Rectangle(144,200,16,16), false)},
+            {125,new EntityInfo("Hidden Heart/Missile",new Rectangle(144,200,16,16)){ SetsFlagWhenKilledByPlayer=false } },
             {126,new EntityInfo("Puppy, running",new Rectangle(24,72,8,8))},
             {127,new EntityInfo("Machine Gun trail, Lv2 (projectile)",new Rectangle(64,86,48,4))},
             {128,new EntityInfo("Machine Gun trail, Lv3 (projectile)",new Rectangle(0,0,0,0))},
@@ -201,11 +209,11 @@ namespace CaveStoryModdingFramework.Entities
             {138,new EntityInfo("Doorway, closed doors",new Rectangle(96,112,32,24))},
             {139,new EntityInfo("Doctor, with crown",new Rectangle(0,128,24,32))},
             {140,new EntityInfo("Frenzied Toroko (boss)",new Rectangle(0,0,32,32))},
-            {141,new EntityInfo("Toroko block (projectile)",new Rectangle(288,32,16,16))},
+            {141,new EntityInfo("Toroko block (projectile)",new Rectangle(288,32,16,16)){ PXEFunctionality=PXECompatability.Crash } },
             {142,new EntityInfo("Flower Cub (enemy)",new Rectangle(0,128,16,16))},
             {143,new EntityInfo("Jenka, collapsed",new Rectangle(208,32,47,16))},
             {144,new EntityInfo("Toroko, teleporting in",new Rectangle(32,64,16,16))},
-            {145,new EntityInfo("King, struck by lightning",new Rectangle(0,0,0,0))},
+            {145,new EntityInfo("King's Blade",new Rectangle(0,0,0,0)){ PXEFunctionality=PXECompatability.Crash } },
             {146,new EntityInfo("Lightning",new Rectangle(304,208,16,32))},
             {147,new EntityInfo("Critter, Hovering Purple (enemy)",new Rectangle(0,96,16,16))},
             {148,new EntityInfo("Critter purple ball (projectile)",new Rectangle(96,96,8,8))},
@@ -221,7 +229,7 @@ namespace CaveStoryModdingFramework.Entities
             {158,new EntityInfo("Fish Missile, Green (enemy)",new Rectangle(0,224,16,16))},
             {159,new EntityInfo("Falling Cat, Monster X",new Rectangle(144,131,48,68))},
             {160,new EntityInfo("Puu Black (boss)",new Rectangle(0,0,40,24))},
-            {161,new EntityInfo("Puu Black bubble (projectile)",new Rectangle(0,48,16,16), false)},
+            {161,new EntityInfo("Puu Black bubble (projectile)",new Rectangle(0,48,16,16)){ SetsFlagWhenKilledByPlayer=false } },
             {162,new EntityInfo("Puu Black, dying",new Rectangle(40,0,40,24))},
             {163,new EntityInfo("Dr. Gero",new Rectangle(192,0,16,16))},
             {164,new EntityInfo("Nurse Hasumi",new Rectangle(224,0,16,16))},
@@ -248,7 +256,7 @@ namespace CaveStoryModdingFramework.Entities
             {185,new EntityInfo("Shutter, small",new Rectangle(96,64,16,32))},
             {186,new EntityInfo("Lift Block",new Rectangle(48,48,16,16))},
             {187,new EntityInfo("Fuzz Core (enemy)",new Rectangle(224,104,32,32))},
-            {188,new EntityInfo("Fuzz (enemy)",new Rectangle(288,104,16,16))},
+            {188,new EntityInfo("Fuzz (enemy)",new Rectangle(288,104,16,16)){ PXEFunctionality=PXECompatability.Crash } },
             {189,new EntityInfo("Homing Flame (enemy)",new Rectangle(48,224,16,16))},
             {190,new EntityInfo("Surface Robot",new Rectangle(192,32,16,16))},
             {191,new EntityInfo("Water Level",new Rectangle(0,208,16,16))},
@@ -260,7 +268,7 @@ namespace CaveStoryModdingFramework.Entities
             {197,new EntityInfo("Porcupine Fish (enemy)",new Rectangle(0,0,16,16))},
             {198,new EntityInfo("IronHead red ring (projectile)",new Rectangle(240,46,-35,25))},
             {199,new EntityInfo("Underwater current, visual",new Rectangle(224,50,16,14))},
-            {200,new EntityInfo("Dragon Zombie (enemy)",new Rectangle(0,0,40,40), false)},
+            {200,new EntityInfo("Dragon Zombie (enemy)",new Rectangle(0,0,40,40)){ SetsFlagWhenKilledByPlayer=false } },
             {201,new EntityInfo("Dragon Zombie, dead",new Rectangle(200,20,42,16))},
             {202,new EntityInfo("Dragon Zombie fire (projectile)",new Rectangle(182,216,18,23))},
             {203,new EntityInfo("Critter, Hopping Aqua (enemy)",new Rectangle(0,80,16,16))},
@@ -293,7 +301,7 @@ namespace CaveStoryModdingFramework.Entities
             {230,new EntityInfo("Red Flowers, large",new Rectangle(100,100,28,28))},
             {231,new EntityInfo("Rocket",new Rectangle(176,32,32,16))},
             {232,new EntityInfo("Orangebell (enemy)",new Rectangle(128,0,32,32))},
-            {233,new EntityInfo("Orangebell bat (enemy)",new Rectangle(0,0,0,0))},
+            {233,new EntityInfo("Orangebell bat (enemy)",new Rectangle(0,0,0,0)){ PXEFunctionality=PXECompatability.Crash } },
             {234,new EntityInfo("Red Flowers, picked",new Rectangle(144,100,28,12))},
             {235,new EntityInfo("Midorin (enemy)",new Rectangle(192,100,16,12))},
             {236,new EntityInfo("Gunfish (enemy)",new Rectangle(128,60,26,28))},
@@ -312,10 +320,10 @@ namespace CaveStoryModdingFramework.Entities
             {249,new EntityInfo("Misery, teleporting out",new Rectangle(32,32,16,16))},
             {250,new EntityInfo("Misery black lightning ball (projectile)",new Rectangle(0,32,16,16))},
             {251,new EntityInfo("Misery black lightning (projectile)",new Rectangle(80,32,16,32))},
-            {252,new EntityInfo("Misery black orbiting rings (projectile)",new Rectangle(0,0,0,0))},
-            {253,new EntityInfo("Energy Capsule ",new Rectangle(0,64,16,16), false)},
+            {252,new EntityInfo("Misery black orbiting rings (projectile)",new Rectangle(0,0,0,0)){ PXEFunctionality=PXECompatability.Crash }},
+            {253,new EntityInfo("Energy Capsule ",new Rectangle(0,64,16,16)){ SetsFlagWhenKilledByPlayer=false } },
             {254,new EntityInfo("Helicopter",new Rectangle(0,0,128,64))},
-            {255,new EntityInfo("Helicopter Blades",new Rectangle(0,0,0,0))},
+            {255,new EntityInfo("Helicopter Blades",new Rectangle(0,0,0,0)){ PXEFunctionality=PXECompatability.Crash } },
             {256,new EntityInfo("Doctor, facing away",new Rectangle(48,160,24,32))},
             {257,new EntityInfo("Red Crystal",new Rectangle(176,32,7,16))},
             {258,new EntityInfo("Mimiga, sleeping",new Rectangle(48,32,16,16))},
@@ -343,8 +351,8 @@ namespace CaveStoryModdingFramework.Entities
             {280,new EntityInfo("Sue, teleporting in",new Rectangle(112,32,15,16))},
             {281,new EntityInfo("Doctor, Red Energy Form",new Rectangle(183,160,25,32))},
             {282,new EntityInfo("Mini Undead Core, moving",new Rectangle(256,120,64,40))},
-            {283,new EntityInfo("Misery, Puppet (enemy)",new Rectangle(0,64,32,32), false)},
-            {284,new EntityInfo("Frenzied Sue (enemy)",new Rectangle(0,128,32,32), false)},
+            {283,new EntityInfo("Misery, Puppet (enemy)",new Rectangle(0,64,32,32)){ SetsFlagWhenKilledByPlayer=false } },
+            {284,new EntityInfo("Frenzied Sue (enemy)",new Rectangle(0,128,32,32)){ SetsFlagWhenKilledByPlayer=false } },
             {285,new EntityInfo("Undead Core flame spiral (projectile)",new Rectangle(0,224,16,16))},
             {286,new EntityInfo("Undead Core flame spiral trail (projectile)",new Rectangle(232,105,15,14))},
             {287,new EntityInfo("Orange Smoke",new Rectangle(48,224,16,-5))},
@@ -357,7 +365,7 @@ namespace CaveStoryModdingFramework.Entities
             {294,new EntityInfo("Generator - Falling Block",new Rectangle(0,16,32,32))},
             {295,new EntityInfo("Cloud",new Rectangle(144,112,48,30))},
             {296,new EntityInfo("Generator - Cloud",new Rectangle(0,0,0,0))},
-            {297,new EntityInfo("Sue, on sky dragon",new Rectangle(0,0,0,0))},
+            {297,new EntityInfo("Sue, on sky dragon",new Rectangle(0,0,0,0)){ PXEFunctionality=PXECompatability.Crash } },
             {298,new EntityInfo("Doctor, without crown",new Rectangle(100,160,20,32))},
             {299,new EntityInfo("Balrog/Misery in bubble",new Rectangle(0,0,48,48))},
             {300,new EntityInfo("Demon Crown",new Rectangle(192,80,16,16))},
@@ -379,7 +387,7 @@ namespace CaveStoryModdingFramework.Entities
             {316,new EntityInfo("Bute, dying",new Rectangle(271,41,22,14))},
             {317,new EntityInfo("Mesa (enemy)",new Rectangle(0,80,32,38))},
             {318,new EntityInfo("Mesa, dying",new Rectangle(224,80,32,40))},
-            {319,new EntityInfo("Mesa block (projectile)",new Rectangle(0,0,0,0))},
+            {319,new EntityInfo("Mesa block (projectile)",new Rectangle(0,0,0,0)){ PXEFunctionality=PXECompatability.Crash }},
             {320,new EntityInfo("Curly, carried, shooting",new Rectangle(0,96,16,16))},
             {321,new EntityInfo("Curly Nemesis bullet spawner (projectile)",new Rectangle(0,0,0,0))},
             {322,new EntityInfo("Deleet (enemy)",new Rectangle(160,216,22,23))},
@@ -387,7 +395,7 @@ namespace CaveStoryModdingFramework.Entities
             {324,new EntityInfo("Generator - Bute",new Rectangle(216,32,16,22))},
             {325,new EntityInfo("Heavy Press lightning (projectile)",new Rectangle(238,0,17,96))},
             {326,new EntityInfo("Itoh/Sue turning human",new Rectangle(97,128,63,26))},
-            {327,new EntityInfo("Itoh/Sue 'Ah Choo!'",new Rectangle(0,0,0,0))},
+            {327,new EntityInfo("Itoh/Sue 'Ah Choo!'",new Rectangle(0,0,0,0)){ PXEFunctionality=PXECompatability.Crash }},
             {328,new EntityInfo("Transmogrifier",new Rectangle(96,0,32,48))},
             {329,new EntityInfo("Building fan",new Rectangle(48,0,16,16))},
             {330,new EntityInfo("Rolling (enemy)",new Rectangle(144,136,16,16))},
@@ -401,12 +409,12 @@ namespace CaveStoryModdingFramework.Entities
             {338,new EntityInfo("Green Devil (enemy)",new Rectangle(283,0,19,16))},
             {339,new EntityInfo("Generator - Green Devil",new Rectangle(0,0,0,0))},
             {340,new EntityInfo("Ballos (boss)",new Rectangle(0,0,44,40))},
-            {341,new EntityInfo("Ballos 1 head",new Rectangle(0,0,0,0))},
-            {342,new EntityInfo("Ballos 3 eyeball (enemy)",new Rectangle(0,0,0,0))},
-            {343,new EntityInfo("Ballos 2 cutscene",new Rectangle(0,0,0,0))},
-            {344,new EntityInfo("Ballos 2 eyes",new Rectangle(0,0,0,0))},
+            {341,new EntityInfo("Ballos 1 head",new Rectangle(0,0,0,0)){ PXEFunctionality=PXECompatability.Crash }},
+            {342,new EntityInfo("Ballos 3 eyeball (enemy)",new Rectangle(0,0,0,0)){ PXEFunctionality=PXECompatability.Crash }},
+            {343,new EntityInfo("Ballos 2 cutscene",new Rectangle(0,0,0,0)){ PXEFunctionality=PXECompatability.Crash }},
+            {344,new EntityInfo("Ballos 2 eyes",new Rectangle(0,0,0,0)){ PXEFunctionality=PXECompatability.Crash }},
             {345,new EntityInfo("Ballos 3 skull (projectile)",new Rectangle(128,176,16,16))},
-            {346,new EntityInfo("Ballos 4 orbiting platform",new Rectangle(0,0,0,0))},
+            {346,new EntityInfo("Ballos 4 orbiting platform",new Rectangle(0,0,0,0)){ PXEFunctionality=PXECompatability.Crash }},
             {347,new EntityInfo("Hoppy (enemy)",new Rectangle(256,48,16,16))},
             {348,new EntityInfo("Ballos 4 spikes",new Rectangle(126,151,18,25))},
             {349,new EntityInfo("Statue",new Rectangle(32,100,32,44))},
@@ -415,7 +423,7 @@ namespace CaveStoryModdingFramework.Entities
             {352,new EntityInfo("Credits-Drop Universal NPC",new Rectangle(224,32,14,16))},
             {353,new EntityInfo("Bute, flying, 2 (enemy)",new Rectangle(198,158,18,18))},
             {354,new EntityInfo("Invisible deathtrap wall",new Rectangle(0,0,0,0))},
-            {355,new EntityInfo("Balrog, crashing through wall",new Rectangle(0,0,0,0))},
+            {355,new EntityInfo("Balrog, crashing through wall",new Rectangle(0,0,0,0)){ PXEFunctionality=PXECompatability.Crash }},
             {356,new EntityInfo("Balrog, rescue",new Rectangle(0,0,40,24))},
             {357,new EntityInfo("Puppy, ghost",new Rectangle(224,137,16,16))},
             {358,new EntityInfo("Misery, tall, wind",new Rectangle(208,10,14,22))},
