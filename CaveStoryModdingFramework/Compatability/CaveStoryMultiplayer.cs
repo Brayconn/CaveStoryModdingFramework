@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CaveStoryModdingFramework.Compatability
+namespace CaveStoryModdingFramework.Compatability.CaveStoryMultiplayer
 {
     public sealed class BitStream : Stream
     {
@@ -216,7 +216,8 @@ namespace CaveStoryModdingFramework.Compatability
 
     public static class CaveStoryMultiplayer
     {
-        public class CSMPStageEntry : Stages.StageEntry
+        public const string DOT_PXMOD = ".pxmod";
+        public class CSMPStageEntry : Stages.StageTableEntry
         {
             public int AreaIndex { get; set; }
             public bool FocusCenterX { get; set; }
