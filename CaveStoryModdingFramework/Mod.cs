@@ -25,45 +25,10 @@ namespace CaveStoryModdingFramework
         
         [LocalizeableCategory(nameof(Dialog.ModStageTableCategory), typeof(Dialog))]
         [XmlIgnore]
-        public StageTablePresets StageTablePreset
-        {
-            get
-            {
-                if (Stages.StageTable.TryDetectPreset(StageTableLocation, StageTableSettings, out var preset) &&
-                    //internal stage tables must be pointing at your exe, and external ones must NOT
-                    (StageTableLocation.DataLocationType == DataLocationTypes.Internal) == (StageTableLocation.Filename == EXEPath))
-                    return preset;
-                else
-                    return StageTablePresets.custom;
-            }
-            set
-            {
-                if(value != StageTablePresets.custom && StageTablePreset != value)
-                {
-                    StageTableLocation.ResetToDefault(value);
-                    switch (value)
-                    {
-                        case StageTablePresets.doukutsuexe:
-                        case StageTablePresets.csmap:
-                        case StageTablePresets.swdata:
-                            StageTableLocation.Filename = EXEPath;
-                            break;
-                        case StageTablePresets.stagetbl:
-                        case StageTablePresets.mrmapbin:
-                            StageTableLocation.Filename = Path.Combine(BaseDataPath,
-                                    value == StageTablePresets.stagetbl
-                                    ? Stages.StageTable.STAGETBL
-                                    : Stages.StageTable.MRMAPBIN
-                                );
-                            break;
-                    }
-                    StageTableSettings.ResetToDefault(value);
-                }
-            }
-        }
+        public StageTablePresets StageTablePreset { get; set; }
 
         [LocalizeableCategory(nameof(Dialog.ModStageTableCategory), typeof(Dialog)), TypeConverter(typeof(ExpandableObjectConverter))]
-        public StageEntrySettings StageTableSettings { get; private set; }
+        public StageTableEntrySettings StageTableSettings { get; private set; }
 
         [LocalizeableCategory(nameof(Dialog.ModStageTableCategory), typeof(Dialog)), TypeConverter(typeof(ExpandableObjectConverter))]
         public StageTableReferences InternalStageTableReferences { get; private set; } = new StageTableReferences();
@@ -73,23 +38,13 @@ namespace CaveStoryModdingFramework
         #endregion
 
         [Browsable(false)]
-        public List<StageEntry> StageTable { get; private set; }
+        public List<StageTableEntry> StageTable { get; private set; }
 
         [Browsable(false)]
         public List<NPCTableEntry> NPCTable { get; private set; }
 
         [Browsable(false)]
         public List<BulletTableEntry> BulletTable { get; private set; }
-
-
-
-
-
-
-
-
-
-
 
         #region path/folder stuff
 
@@ -315,9 +270,9 @@ namespace CaveStoryModdingFramework
 
             FolderPaths = new AssetManager(this, "Stage", "Npc");
 
-            StageTableLocation = new StageTableLocation(stage, type);
-            StageTableSettings = new StageEntrySettings(type);
-            StageTable = Stages.StageTable.Read(StageTableLocation, StageTableSettings);
+            StageTableLocation = new StageTableLocation();
+            StageTableSettings = new StageTableEntrySettings(type);
+            StageTable = StageTableLocation.Read();
 
             switch (StageTableLocation.DataLocationType)
             {
@@ -351,18 +306,18 @@ namespace CaveStoryModdingFramework
             switch(StageTableLocation.DataLocationType)
             {
                 case DataLocationTypes.Internal:
-                    BulletTableLocation = new BulletTableLocation(EXEPath, BulletTablePresets.doukutsuexe);
+                    BulletTableLocation = new BulletTableLocation(BulletTablePresets.doukutsuexe);
                     break;
                 case DataLocationTypes.External:
-                    BulletTableLocation = new BulletTableLocation(Path.Combine(BaseDataPath, CaveStoryModdingFramework.BulletTable.BULLETTABLE), BulletTablePresets.csplus);
+                    BulletTableLocation = new BulletTableLocation(BulletTablePresets.csplus);
                     break;
             }
             
-            BulletTable = CaveStoryModdingFramework.BulletTable.Read(BulletTableLocation);
+            //BulletTable = BulletTableLocation.Read(BulletTableLocation);
 
-            NpcTableLocation = new NPCTableLocation(Path.Combine(BaseDataPath, Entities.NPCTable.NPCTBL));
-            if(File.Exists(NpcTableLocation.Filename))
-                NPCTable = Entities.NPCTable.Load(NpcTableLocation);
+            //NpcTableLocation = new NPCTableLocation(Path.Combine(BaseDataPath, Entities.NPCTable.NPCTBL));
+            //if(File.Exists(NpcTableLocation.Filename))
+                //NPCTable = Entities.NPCTable.Load(NpcTableLocation);
 
             //TODO test if this is really needed...
             foreach (var surface in Surfaces.SurfaceList)
@@ -395,12 +350,12 @@ namespace CaveStoryModdingFramework
                 ReadXml(x);
             xmlWorkingPath = null;
 
-            StageTable = Stages.StageTable.Read(StageTableLocation, StageTableSettings);
+            //StageTable = Stages.StageTable.Read(StageTableLocation, StageTableSettings);
 
-            BulletTable = CaveStoryModdingFramework.BulletTable.Read(BulletTableLocation);
+            //BulletTable = CaveStoryModdingFramework.BulletTableLocation.Read(BulletTableLocation);
 
-            if (File.Exists(NpcTableLocation.Filename))
-                NPCTable = Entities.NPCTable.Load(NpcTableLocation);
+            //if (File.Exists(NpcTableLocation.Filename))
+                //NPCTable = Entities.NPCTable.Load(NpcTableLocation);
         }
 
         /// <summary>
