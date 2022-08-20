@@ -169,6 +169,28 @@ namespace CaveStoryModdingFramework
         
 
         public bool UseScriptSource { get; set; }
+
+        string ScriptEncodingName
+        {
+            get => ScriptEncoding?.WebName ?? "";
+            set
+            {
+#if NETCOREAPP
+                    //.NET Core will throw on the subsequent call to get Shift JIS if this isn't run
+                    Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+#endif
+                try
+                {
+                    var e = Encoding.GetEncoding(value);
+                    ScriptEncoding = e;
+                }
+                catch (ArgumentException)
+                {
+
+                }
+            }
+        }
+        [XmlIgnore]
         public Encoding ScriptEncoding { get; set; } = Encoding.ASCII;
         public bool ScriptsEncrypted { get; set; }
         //divide the length of the tsc file by this number to find the TSC decryption key
