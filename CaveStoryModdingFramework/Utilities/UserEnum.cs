@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Xml;
 using System.Xml.Schema;
@@ -7,40 +9,67 @@ using System.Xml.Serialization;
 
 namespace CaveStoryModdingFramework.Utilities
 {
-    public class SingleMap
+    [DebuggerDisplay(UserEnumValueDebuggerDisplay)]
+    public class UserEnumValue
+    {
+        protected const string UserEnumValueDebuggerDisplay = "Name = {Name} Description = {Description}";
+        [XmlAttribute]
+        public string Name { get; set; } = "";
+        [XmlAttribute, DefaultValue("")]
+        public string Description { get; set; } = "";
+
+        public UserEnumValue() { }
+        public UserEnumValue(string name = "", string description = "")
+        {
+            Name = name;
+            Description = description;
+        }   
+
+        public override bool Equals(object obj)
+        {
+            if (obj is UserEnumValue uev)
+            {
+                return Name == uev.Name && Description == uev.Description;
+            }
+            else return base.Equals(obj);
+        }
+    }
+    [DebuggerDisplay("Value = {Value} " + UserEnumValueDebuggerDisplay)]
+    public class SingleMap : UserEnumValue
     {
         [XmlAttribute]
         public int Value { get; set; }
-        [XmlText]
-        public string Name { get; set; }
 
         public SingleMap() { }
-        public SingleMap(int value, string name)
+        public SingleMap(int value, string name = "", string description = "")
         {
             Value = value;
             Name = name;
+            Description = description;
         }
 
         public override bool Equals(object obj)
         {
             if (obj is SingleMap sm)
             {
-                return Value == sm.Value && Name == sm.Name;
+                return Value == sm.Value && base.Equals(sm);
             }
             else return base.Equals(obj);
         }
     }
+    [DebuggerDisplay("Start = {Value} End = {End} " + UserEnumValueDebuggerDisplay)]
     public class RangeMap : SingleMap
     {
         [XmlAttribute]
         public int End { get; set; }
 
         public RangeMap() { }
-        public RangeMap(int start, int end, string name)
+        public RangeMap(int start, int end, string name = "", string description = "")
         {
             Value = start;
             End = end;
             Name = name;
+            Description = description;
         }
 
         public override bool Equals(object obj)
@@ -57,17 +86,19 @@ namespace CaveStoryModdingFramework.Utilities
         Positive,
         Negative
     }
+    [DebuggerDisplay("Start = {Value} Direction = {Direction} " + UserEnumValueDebuggerDisplay)]
     public class InfiniteMap : SingleMap
     {
         [XmlAttribute]
         public Directions Direction { get; set; }
 
         public InfiniteMap() { }
-        public InfiniteMap(int point, Directions direction, string name)
+        public InfiniteMap(int point, Directions direction, string name = "", string description = "")
         {
             Value = point;
             Direction = direction;
             Name = name;
+            Description = description;
         }
 
         public override bool Equals(object obj)
@@ -82,15 +113,15 @@ namespace CaveStoryModdingFramework.Utilities
     public class UserEnum : IXmlSerializable
     {   
         public string Name { get; set; }
-        public string Default { get; set; }
+        public UserEnumValue Default { get; set; }
 
-        public Dictionary<int, string> BasicMappings { get; } = new Dictionary<int, string>();
+        public Dictionary<int, UserEnumValue> BasicMappings { get; } = new Dictionary<int, UserEnumValue>();
         public List<RangeMap> FiniteRanges { get; } = new List<RangeMap>();
         public InfiniteMap UpperBound { get; set; }
         public InfiniteMap LowerBound { get; set; }
 
         public UserEnum() { }
-        public UserEnum(string name, string def, params SingleMap[] args)
+        public UserEnum(string name, UserEnumValue def, params SingleMap[] args)
         {
             Name = name;
             Default = def;
@@ -114,7 +145,7 @@ namespace CaveStoryModdingFramework.Utilities
                 }
                 else
                 {
-                    BasicMappings.Add(args[i].Value, args[i].Name);
+                    BasicMappings.Add(args[i].Value, args[i]);
                 }
             }
         }
@@ -125,7 +156,7 @@ namespace CaveStoryModdingFramework.Utilities
         /// <param name="value">The integer</param>
         /// <param name="name">The string</param>
         /// <returns>Whether an exact match (other than the default) was found</returns>
-        public bool TryGet(int value, out string name)
+        public bool TryGet(int value, out UserEnumValue name)
         {
             //Try direct mappings first
             if (BasicMappings.TryGetValue(value, out name))
@@ -135,19 +166,19 @@ namespace CaveStoryModdingFramework.Utilities
             {
                 if (range.Value <= value && value <= range.End)
                 {
-                    name = range.Name;
+                    name = range;
                     return true;
                 }
             }
             //Try infinite ranges
             if(LowerBound != null && value <= LowerBound.Value)
             {
-                name = LowerBound.Name;
+                name = LowerBound;
                 return true;
             }
             if (UpperBound != null && UpperBound.Value <= value)
             {
-                name = UpperBound.Name;
+                name = UpperBound;
                 return true;
             }
             //Use default and hope for the best
@@ -197,7 +228,7 @@ namespace CaveStoryModdingFramework.Utilities
         public void ReadXml(XmlReader reader)
         {
             Name = reader.GetAttribute(nameof(Name));
-            Default = reader.GetAttribute(nameof(Default));
+            
             reader.ReadStartElement(nameof(UserEnum));
             if (reader.NodeType != XmlNodeType.None)
             {
@@ -205,9 +236,12 @@ namespace CaveStoryModdingFramework.Utilities
                 {
                     switch (reader.LocalName)
                     {
+                        case nameof(Default):
+                            Default = reader.DeserializeAs<UserEnumValue>(null, nameof(Default));
+                            break;
                         case nameof(SingleMap):
                             var sm = reader.DeserializeAs<SingleMap>(null, "");
-                            BasicMappings.Add(sm.Value, sm.Name);
+                            BasicMappings.Add(sm.Value, sm);
                             break;
                         case nameof(RangeMap):
                             var rm = reader.DeserializeAs<RangeMap>(null, "");
@@ -225,6 +259,8 @@ namespace CaveStoryModdingFramework.Utilities
                                     break;
                             }
                             break;
+                        default:
+                            throw new ArgumentException("Unknown argument type: " + reader.LocalName);
                     }
                 } while (reader.NodeType == XmlNodeType.Element);
                 reader.ReadEndElement();
@@ -235,10 +271,10 @@ namespace CaveStoryModdingFramework.Utilities
         {
             writer.WriteAttributeString(nameof(Name), Name);
             if(Default != null)
-                writer.WriteAttributeString(nameof(Default), Default);
+                writer.SerializeAsRoot(Default, nameof(Default));
             foreach (var item in BasicMappings)
             {
-                writer.SerializeAsRoot(new SingleMap(item.Key, item.Value), nameof(SingleMap));
+                writer.SerializeAsRoot(new SingleMap(item.Key, item.Value.Name, item.Value.Description), nameof(SingleMap));
             }
             foreach(var range in FiniteRanges)
             {
@@ -255,11 +291,11 @@ namespace CaveStoryModdingFramework.Utilities
             if(obj is UserEnum ue)
             {
                 return Name == ue.Name &&
-                    Default == ue.Default &&
+                    (Default?.Equals(ue.Default) ?? ue.Default == null) &&
                     BasicMappings.SequenceEqual(ue.BasicMappings) && //this seems a little hacky, but it works, so...
                     FiniteRanges.SequenceEqual(ue.FiniteRanges) &&
-                    (UpperBound?.Equals(ue.UpperBound) ?? true) &&
-                    (LowerBound?.Equals(ue.LowerBound) ?? true);
+                    (UpperBound?.Equals(ue.UpperBound) ?? ue.UpperBound == null) &&
+                    (LowerBound?.Equals(ue.LowerBound) ?? ue.LowerBound == null);
             }
             else return base.Equals(obj);
         }
