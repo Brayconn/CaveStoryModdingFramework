@@ -226,14 +226,7 @@ namespace CaveStoryModdingFrameworkTests
                     {
                         //Need to do this to distinguish from DoConfig
                         //Different languages have different names, so file size it is...
-                        var biggestExe = new Tuple<string, long>("", 0);
-                        foreach (var exe in Directory.EnumerateFiles(csPath, exeFilter))
-                        {
-                            var inf = new FileInfo(exe);
-                            if (inf.Length > biggestExe.Item2)
-                                biggestExe = new Tuple<string, long>(inf.Name, inf.Length);
-                        }
-                        exePath = Path.Combine(csPath, biggestExe.Item1);
+                        exePath = AutoDetector.FindLargestFile(csPath, exeFilter);
                     }
                     
                     var baseDataPath = Path.Combine(csPath, "data");
@@ -268,7 +261,7 @@ namespace CaveStoryModdingFrameworkTests
                     //external tables in general
                     var extTables = AutoDetector.FindExternalTables(baseDataPath);
                     if(extTables != null)
-                        pf.Add(extTables, layout);
+                        pf.AddTables(extTables, layout);
 
                     //still didn't find a single stage table... epic fail moment...
                     if (pf.StageTables.Count == 0)
@@ -346,7 +339,7 @@ namespace CaveStoryModdingFrameworkTests
                                 {
                                     foreach (var tab in externalTables.StageTables)
                                         localTables.Add(tab.Read());
-                                    pf.Add(externalTables, localLayout);
+                                    pf.AddTables(externalTables, localLayout);
                                 }
 
                                 //...and merge them!
