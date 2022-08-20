@@ -11,6 +11,7 @@ namespace CaveStoryModdingFramework.Maps
         Buffer,
         Logical
     }
+    [Serializable]
     public class Map : IMap<short, List<byte?>, byte?>
     {
         public const string DefaultExtension = "pxm";

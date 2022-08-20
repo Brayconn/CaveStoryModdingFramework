@@ -35,6 +35,7 @@ namespace CaveStoryModdingFramework.Entities
     /// <summary>
     /// The actual entity class
     /// </summary>
+    [Serializable]
     public class Entity : PropertyChangedHelper
     {
         short x,y,flag,@event,type;
