@@ -140,7 +140,7 @@ namespace CaveStoryModdingFramework.AutoDetection
      * that's it... a lot more loose, but it works (barely)     
      */
 
-    public class AutoDetector
+    public static class AutoDetector
     {
         #region Utilities
 
@@ -183,6 +183,10 @@ namespace CaveStoryModdingFramework.AutoDetection
             int foundTotal = 0;
             foreach (var filename in filenames)
             {
+                //empty filenames will decrease the amount of things found
+                if (string.IsNullOrWhiteSpace(filename))
+                    continue;
+
                 bool foundThis = false;
                 foreach (var file in Extensions.EnumerateFilesCaseInsensitive(path, "*" + Path.ChangeExtension(filename, extension)))
                 {
@@ -244,6 +248,21 @@ namespace CaveStoryModdingFramework.AutoDetection
             foreach (var item in items)
                 output.Add(item.ToLower());
             return output;
+        }
+
+        public static string FindLargestFile(string path, string filter, bool caseSensitive = false)
+        {
+            var largest = new Tuple<string, long>("", 0);
+            var items = caseSensitive
+                ? Directory.EnumerateFiles(path, filter)
+                : Extensions.EnumerateFilesCaseInsensitive(path, filter);
+            foreach (var file in items)
+            {
+                var inf = new FileInfo(file);
+                if (inf.Length > largest.Item2)
+                    largest = new Tuple<string, long>(file, inf.Length);
+            }
+            return (largest.Item1 != "") ? largest.Item1 : null;
         }
 
         /// <summary>
@@ -817,6 +836,8 @@ namespace CaveStoryModdingFramework.AutoDetection
 
         #endregion
 
+        #region Npc/Stage Folder detection
+
         /// <summary>
         /// Search the given path for an npc an stage folder.
         /// It is highly recommended that you read any info from the stage table(s) outside of the passed functions
@@ -1216,5 +1237,9 @@ namespace CaveStoryModdingFramework.AutoDetection
             }
         }
         #endregion
+
+        #endregion
+
+
     }
 }
