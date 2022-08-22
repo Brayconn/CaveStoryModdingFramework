@@ -40,9 +40,9 @@ namespace CaveStoryModdingFramework.AutoDetection
         public string FoundMaps { get; }
         public string FoundEntities { get; }
         public string FoundScripts { get; }
-        public bool ScriptsEncrypted { get; }
+        public bool? ScriptsEncrypted { get; }
 
-        public StageFolderSearchResults(string foundMaps, string foundEntities, string foundScripts, bool scriptsEncrypted)
+        public StageFolderSearchResults(string foundMaps, string foundEntities, string foundScripts, bool? scriptsEncrypted)
         {
             FoundMaps = foundMaps;
             FoundEntities = foundEntities;
@@ -984,7 +984,7 @@ namespace CaveStoryModdingFramework.AutoDetection
                 project.EntityExtension = stage.FoundEntities;
                 project.MapExtension = stage.FoundMaps;
                 project.ScriptExtension = stage.FoundScripts;
-                project.ScriptsEncrypted = stage.ScriptsEncrypted;
+                project.ScriptsEncrypted = stage.ScriptsEncrypted ?? false;
 
                 project.AttributeExtension = attrib.AttributeExtension;
                 project.TilesetPrefix = attrib.TilesetPrefix;
@@ -995,126 +995,167 @@ namespace CaveStoryModdingFramework.AutoDetection
         }
         public static bool TryFindStageExtensions(string path, List<string> filenames, out StageFolderSearchResults stageExtensions)
         {
-            stageExtensions = null;
+            string MapExt = null;
+            string EntExt = null;
+            string ScriptExt = null;
+            bool? encrypted = null;
 
-            //Find filenames/initial candidate extensions
-            var FoundExts = new HashSet<string>();
+            var FoundExts = new Dictionary<string, int>();
             var FoundNames = new Dictionary<string, HashSet<string>>(filenames.Count);
+
+            //find every file extension that every given filename uses
             foreach(var entry in filenames)
             {
                 foreach(var file in Extensions.EnumerateFilesCaseInsensitive(path, entry + ".*"))
                 {
                     var ext = Path.GetExtension(file);
-                    if (!FoundExts.Contains(ext))
-                        FoundExts.Add(ext);
+                    if (!FoundExts.ContainsKey(ext))
+                        FoundExts.Add(ext,0);
 
-                    var name = Path.GetFileNameWithoutExtension(file);
+                    var name = Path.GetFileNameWithoutExtension(file).ToLowerInvariant();
                     if (!FoundNames.ContainsKey(name))
                         FoundNames.Add(name, new HashSet<string> { ext });
                     else
                         FoundNames[name].Add(ext);
                 }
             }
-            if (FoundExts.Count < 3) //didn't even find enough extensions
-                return false;
-            
-            //check if we found enough SHARED extensions
-            var exts = new Dictionary<string, VersusCounter>(FoundExts.Count);
-            foreach(var ext in FoundExts)
-            {
-                if(FoundNames.All(x => x.Value.Contains(ext)))
-                    exts.Add(ext, new VersusCounter());
-            }
-            if (exts.Count > 3)
-                throw new Exception("Found more than 3 possible extensions!");
 
-            //Score the extensions by how many PXM/PXEs they have
-            //Note: only checking the HEADER, not the one byte after
-            var max = Math.Max(Map.DefaultHeader.Length, PXE.DefaultHeader.Length);
-            const int Cutoff = 3;
-            foreach (var ext in exts.Keys)
+            //can't continue if there aren't enough extensions
+            if (FoundExts.Count >= 3)
             {
-                foreach (var file in Directory.EnumerateFiles(path, "*" + ext))
+                //if this filename has 3 or more extensions to its name, increase their counts
+                foreach (var name in FoundNames)
                 {
-                    if (exts[ext].Option1 > Cutoff || exts[ext].Option2 > Cutoff)
-                        break;
-
-                    var data = new byte[max];
-                    using(var fs = new FileStream(file, FileMode.Open, FileAccess.Read))
-                        fs.Read(data, 0, data.Length);
-                    if (data.SequenceEqual(Map.DefaultHeader))
-                        exts[ext].Option1++;
-                    else if (data.SequenceEqual(PXE.DefaultHeader))
-                        exts[ext].Option2++;
-                }
-            }
-            //gather the results
-            var MaxMap = 0;
-            var MapExt = "";
-            var MaxEnt = 0;
-            var EntExt = "";
-            foreach (var ext in exts)
-            {
-                if (ext.Value.Option1 > MaxMap)
-                    MapExt = ext.Key;
-                else if (ext.Value.Option2 > MaxEnt)
-                    EntExt = ext.Key;
-            }
-            exts.Remove(MapExt);
-            exts.Remove(EntExt);
-
-            //should be left with just scripts?
-            if (exts.Count > 1)
-                throw new Exception("More than 1 script candidate left!");
-
-            var searchString = Encoding.ASCII.GetBytes("<END");
-            foreach (var ext in exts.Keys)
-            {
-                exts[ext].Option1 = 0;
-                exts[ext].Option2 = 0;
-                foreach (var file in Directory.EnumerateFiles(path, "*" + ext))
-                {
-                    using (var data = Extensions.OpenInMemory(file))
+                    if (name.Value.Count >= 3)
                     {
-                        var text = Encoding.ASCII.GetString((data as MemoryStream).ToArray());
-                        //if the file already has <END, that's one point for "unencrypted TSC"
-                        if(data.FindBytes(searchString) != -1)
+                        foreach (var ext in name.Value)
                         {
+                            FoundExts[ext]++;
+                        }
+                    }
+                }
+
+                //take the top three (or more) most common
+                var exts = new Dictionary<string, VersusCounter>(FoundExts.Count);
+                while (exts.Count < 3)
+                {
+                    var topScore = FoundExts.Values.Max();
+                    var batch = FoundExts.Where(x => x.Value == topScore).Select(x => x.Key).ToList();
+                    foreach (var b in batch)
+                    {
+                        exts.Add(b, new VersusCounter());
+                        FoundExts.Remove(b);
+                    }
+                }
+
+                //Score the extensions by how many of them begin with PXM/PXE headers
+                //Note: only checking the HEADER, not the one byte after
+                var headerBufferSize = Math.Max(Map.DefaultHeader.Length, PXE.DefaultHeader.Length);
+                const int Cutoff = 3;
+                foreach (var ext in exts.Keys)
+                {
+                    foreach (var file in Directory.EnumerateFiles(path, "*" + ext))
+                    {
+                        //FPTP
+                        if (exts[ext].Option1 > Cutoff || exts[ext].Option2 > Cutoff)
+                            break;
+
+                        var data = new byte[headerBufferSize];
+                        using (var fs = new FileStream(file, FileMode.Open, FileAccess.Read))
+                            fs.Read(data, 0, data.Length);
+                        if (data.SequenceEqual(Map.DefaultHeader))
                             exts[ext].Option1++;
-                        }
-                        else
+                        else if (data.SequenceEqual(PXE.DefaultHeader))
+                            exts[ext].Option2++;
+                    }
+                }
+                //gather the results
+                {
+                    var MaxMap = 0;
+                    var MaxEnt = 0;
+                    foreach (var ext in exts)
+                    {
+                        if (ext.Value.Option1 > MaxMap)
+                            MapExt = ext.Key;
+                        else if (ext.Value.Option2 > MaxEnt)
+                            EntExt = ext.Key;
+                    }
+                }
+                exts.Remove(MapExt);
+                exts.Remove(EntExt);
+
+                //should be left with just scripts?
+                var searchString = Encoding.ASCII.GetBytes("<END");
+                foreach (var ext in exts.Keys)
+                {
+                    exts[ext].Option1 = 0;
+                    exts[ext].Option2 = 0;
+                    foreach (var file in Directory.EnumerateFiles(path, "*" + ext))
+                    {
+                        using (var data = Extensions.OpenInMemory(file))
                         {
-                            //if it needed to be decrypted first, that's a point for encrypted
-                            TSC.Encryptor.DecryptInPlace(data);
-                            text = Encoding.ASCII.GetString((data as MemoryStream).ToArray());
-                            data.Position = 0;
-                            if(data.FindBytes(searchString) != -1)
-                                exts[ext].Option2++;
+#if DEBUG
+                            var text = Encoding.ASCII.GetString((data as MemoryStream).ToArray());
+#endif
+                            //if the file already has <END, that's one point for "unencrypted TSC"
+                            if (data.FindBytes(searchString) != -1)
+                            {
+                                exts[ext].Option1++;
+                            }
+                            else
+                            {
+                                //if it needed to be decrypted first, that's a point for encrypted
+                                TSC.Encryptor.DecryptInPlace(data);
+#if DEBUG
+                                text = Encoding.ASCII.GetString((data as MemoryStream).ToArray());
+#endif
+                                data.Position = 0;
+                                if (data.FindBytes(searchString) != -1)
+                                    exts[ext].Option2++;
+                            }
+                            //otherwise it's a point for nothing...
                         }
-                        //otherwise it's a point for nothing...
+                    }
+                }
+
+                //tally the results
+                bool SetScriptExt(string value, bool enc)
+                {
+                    //trying to overwrite an existing value should be a fail
+                    //since it means there were multiple valid scripts
+                    if (ScriptExt != null)
+                    {
+                        ScriptExt = null;
+                        encrypted = null;
+                        return false;
+                    }
+                    else
+                    {
+                        ScriptExt = value;
+                        encrypted = enc;
+                        return true;
+                    }
+                }
+                int ScriptMax = 0;
+                foreach (var ext in exts)
+                {
+                    //using >= instead of > to make sure we attempt to overwrite existing values
+                    if (ext.Value.Option1 >= ScriptMax)
+                    {
+                        ScriptMax = ext.Value.Option1;
+                        if(!SetScriptExt(ext.Key, false))
+                            break;
+                    }
+                    else if (ext.Value.Option2 >= ScriptMax)
+                    {
+                        ScriptMax = ext.Value.Option2;
+                        if(!SetScriptExt(ext.Key, true))
+                            break;
                     }
                 }
             }
-            bool encrypted = true;
-            int ScriptMax = 0;
-            string ScriptExt = "";
-            foreach(var ext in exts)
-            {
-                if (ext.Value.Option1 > ScriptMax)
-                {
-                    encrypted = false;
-                    ScriptMax = ext.Value.Option1;
-                    ScriptExt = ext.Key;
-                }
-                else if(ext.Value.Option2 > ScriptMax)
-                {
-                    encrypted = true;
-                    ScriptMax = ext.Value.Option2;
-                    ScriptExt = ext.Key;
-                }
-            }
             stageExtensions = new StageFolderSearchResults(MapExt,EntExt,ScriptExt,encrypted);
-            return true;
+            return MapExt != null && EntExt != null && ScriptExt != null && encrypted != null;
         }
 
         public static float ContainsStageFiles(List<StageTableEntry> table, string path,
