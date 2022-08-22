@@ -1140,13 +1140,14 @@ namespace CaveStoryModdingFramework.AutoDetection
                 foreach (var ext in exts)
                 {
                     //using >= instead of > to make sure we attempt to overwrite existing values
-                    if (ext.Value.Option1 >= ScriptMax)
+                    //also checking against the other option to eliminate false positives
+                    if (ext.Value.Option1 > ext.Value.Option2 && ext.Value.Option1 >= ScriptMax)
                     {
                         ScriptMax = ext.Value.Option1;
                         if(!SetScriptExt(ext.Key, false))
                             break;
                     }
-                    else if (ext.Value.Option2 >= ScriptMax)
+                    else if (ext.Value.Option2 > ext.Value.Option1 && ext.Value.Option2 >= ScriptMax)
                     {
                         ScriptMax = ext.Value.Option2;
                         if(!SetScriptExt(ext.Key, true))
@@ -1214,6 +1215,7 @@ namespace CaveStoryModdingFramework.AutoDetection
         }
         public static bool TryFindAttributeExtension(string path, IEnumerable<string> tilesets, string imageExtension, StageFolderSearchResults exclude, out AttributeInfo inf)
         { 
+            //GetExtension() returns with the ".", so we need to make sure it's there
             if (!imageExtension.StartsWith("."))
                 imageExtension = "." + imageExtension;
 
@@ -1225,7 +1227,7 @@ namespace CaveStoryModdingFramework.AutoDetection
             };
 
             var foundPrefixes = new HashSet<string>();
-            var foundExts = new HashSet<string>();
+            var foundExts = new Dictionary<string, int>();
             foreach(var tileset in tilesets)
             {
                 foreach(var file in Extensions.EnumerateFilesCaseInsensitive(path, "*" + tileset + ".*"))
@@ -1235,17 +1237,25 @@ namespace CaveStoryModdingFramework.AutoDetection
                     if (ext == imageExtension)
                         foundPrefixes.Add(name.ReplaceCaseInsensitive(tileset, ""));
                     else if(!excludeExts.Contains(ext))
-                        foundExts.Add(ext);
+                    {
+                        if (!foundExts.ContainsKey(ext))
+                            foundExts.Add(ext, 1);
+                        else
+                            foundExts[ext]++;
+                    }
                 }
             }
+            //just pick the first prefix...?
+            var usePref = foundPrefixes.Count > 0 ? foundPrefixes.First() : null;
+
             //if we found more than 1 candidate, we might need to check for pxw files
             if(foundExts.Count > 1)
             {
                 //using ToList() because we're about to modify the collection
-                foreach (var ext in foundExts.ToList())
+                foreach (var ext in foundExts.Keys.ToList())
                 {
-                    bool pxw = false;
-                    foreach(var file in Extensions.EnumerateFilesCaseInsensitive(path, "*" + ext))
+                    var pxw = false;
+                    foreach (var file in Extensions.EnumerateFilesCaseInsensitive(path, "*" + ext))
                     {
                         try
                         {
@@ -1261,21 +1271,20 @@ namespace CaveStoryModdingFramework.AutoDetection
                         //only need to test one file really...
                         break;
                     }
-                    if (pxw)
+                    if(pxw)
                         foundExts.Remove(ext);
                 }
             }
-            //if it's not 1 by this point, fail
-            if (foundPrefixes.Count == 1 && foundExts.Count == 1)
-            {
-                inf = new AttributeInfo(foundPrefixes.First(), foundExts.First());
-                return true;
-            }
-            else
-            {
-                inf = null;
-                return false;
-            }
+
+            //pick the most common prefix
+            var max = foundExts.Values.Max();
+            var maxExts = foundExts.Where(x => x.Value == max).Select(x => x.Key).ToList();
+            var useExt = maxExts.Count > 0 ? maxExts[0] : null;
+
+            inf = new AttributeInfo(usePref, useExt);
+            //if there was a tie for most common, this check will fail
+            return foundPrefixes.Count == 1 && maxExts.Count == 1;
+            
         }
         #endregion
 
