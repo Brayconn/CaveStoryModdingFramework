@@ -2,6 +2,7 @@
 using CaveStoryModdingFramework.Utilities;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace CaveStoryModdingFramework.Editors
 {
@@ -44,6 +45,7 @@ namespace CaveStoryModdingFramework.Editors
     /// <summary>
     /// Used for tracking Draw and Fill changes
     /// </summary>
+    [DebuggerDisplay("{Old} -> {New}")]
     public class TileChange
     {
         public byte Old { get; }
@@ -57,6 +59,7 @@ namespace CaveStoryModdingFramework.Editors
     /// <summary>
     /// Used for tracking the rectangle tool
     /// </summary>
+    [DebuggerDisplay("{StartIndex} -> {Old.Width}x{Old.Height}")]
     public class RectangleChange
     {
         public int StartIndex { get; set; }
@@ -293,6 +296,7 @@ namespace CaveStoryModdingFramework.Editors
             }
         }
 
+        [DebuggerDisplay("X = [{x1} - {x2}] Y = {y} Direction = {direction}")]
         struct FillInfo
         {
             public readonly int x1,x2,y,direction;
@@ -310,10 +314,17 @@ namespace CaveStoryModdingFramework.Editors
             var startIndex = (y * Tiles.Width) + x;
             //span/seed fill adapted from wikipedia
 
-            if (TileChangeQueue.ContainsKey(startIndex))
+            if (!TileChangeQueue.ContainsKey(startIndex))
             {
                 var f = (byte)Tiles.Tiles[startIndex];
 
+                bool Inside(int index)
+                {
+                    //valid index
+                    return 0 <= index && index < Tiles.Tiles.Count
+                        //hasn't already been changed
+                        && !TileChangeQueue.ContainsKey(index) && Tiles.Tiles[index] == f;
+                }
                 void SafeAdd(int _x, int _y)
                 {
                     QueueTileChange(_x, _y,
@@ -326,41 +337,51 @@ namespace CaveStoryModdingFramework.Editors
                 while(q.Count > 0)
                 {
                     var line = q.Dequeue();
+                    //shortcut for lines that go off the top/bottom
+                    if (line.y < 0 || Tiles.Height <= line.y)
+                        continue;
                     var leftIndex = line.y * Tiles.Width;
                     var rightIndex = leftIndex + Tiles.Width - 1;
                     var leftScanner = line.x1;
                     
-                    //search left
-                    if(leftIndex <= leftScanner && (byte)Tiles.Tiles[leftIndex + leftScanner] == f)
+                    //find the leftmost tile in the row
+                    if(leftIndex <= leftIndex + leftScanner && Inside(leftIndex + leftScanner))
                     {
-                        while (leftIndex <= leftScanner && Tiles.Tiles[leftIndex + leftScanner - 1] == f)
+                        while (leftIndex <= leftIndex + leftScanner - 1 && Inside(leftIndex + leftScanner - 1))
                         {
+                            //fill in all tiles found on the journey
+                            //EXCEPT THE STARTING TILE (that's done down below)
                             SafeAdd(--leftScanner, line.y);
                         } 
                     }
-                    //xi is now the leftmost tile in this row
+                    //leftScanner is now the leftmost tile in this row
 
-                    //add an overhang row...?
+                    //if we're overhanging, add a line in the opposite vertical direction
                     if (leftScanner < line.x1)
-                        q.Enqueue(new FillInfo(leftScanner, line.x1 - 1, y - line.direction, -line.direction));
+                        q.Enqueue(new FillInfo(leftScanner, line.x1 - 1, line.y - line.direction, -line.direction));
 
                     var rightScanner = line.x1;
+                    //while there's still guarenteed tiles in this line...
                     while(rightScanner <= line.x2)
                     {
-                        while (rightScanner <= rightIndex && Tiles.Tiles[leftIndex + rightScanner] == f)
+                        //look for eligable tiles
+                        while (leftIndex + rightScanner <= rightIndex && Inside(leftIndex + rightScanner))
                         {
-                            //normal drawing
+                            //draw them
                             SafeAdd(rightScanner, line.y);
-                            //keep scanning in the current direction
-                            q.Enqueue(new FillInfo(leftScanner, rightScanner, y + line.direction, line.direction));
-                            //if we passed the known right edge, go the other way too
+                            //continue scanning in the current vertical direction
+                            q.Enqueue(new FillInfo(leftScanner, rightScanner, line.y + line.direction, line.direction));
+                            //if we passed the known right edge, add a line going the opposite vertical direction on that overhang
                             if (rightScanner > line.x2)
                                 q.Enqueue(new FillInfo(line.x2 + 1, rightScanner, line.y - line.direction, -line.direction));
                             rightScanner++;
                         }
+                        //skip past whatever tile we stopped at on this line
                         rightScanner++;
 
-                        while (rightScanner < line.x2 && rightScanner <= rightIndex && Tiles.Tiles[leftIndex + rightScanner] == f)
+                        //skip any non-eligable tiles in this row EXCEPT THE LAST ONE
+                        //we want to loop around to hit that instead
+                        while (rightScanner < line.x2 && !Inside(leftIndex + rightScanner))
                             rightScanner++;
                         leftScanner = rightScanner;
                     }
