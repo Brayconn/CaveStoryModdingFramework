@@ -312,8 +312,9 @@ namespace CaveStoryModdingFramework.Editors
         void QueueFill(int x, int y)
         {
             var startIndex = (y * Tiles.Width) + x;
-            //span/seed fill adapted from wikipedia
-
+            
+            //span/seed fill adapted from Wikipedia
+            //https://en.wikipedia.org/wiki/Flood_fill#Span_Filling
             if (!TileChangeQueue.ContainsKey(startIndex))
             {
                 var f = (byte)Tiles.Tiles[startIndex];
@@ -372,7 +373,7 @@ namespace CaveStoryModdingFramework.Editors
                             //continue scanning in the current vertical direction
                             q.Enqueue(new FillInfo(leftScanner, rightScanner, line.y + line.direction, line.direction));
                             //if we passed the known right edge, add a line going the opposite vertical direction on that overhang
-                            if (rightScanner > line.x2)
+                            if (line.x2 < rightScanner)
                                 q.Enqueue(new FillInfo(line.x2 + 1, rightScanner, line.y - line.direction, -line.direction));
                             rightScanner++;
                         }
@@ -380,54 +381,13 @@ namespace CaveStoryModdingFramework.Editors
                         rightScanner++;
 
                         //skip any non-eligable tiles in this row EXCEPT THE LAST ONE
-                        //we want to loop around to hit that instead
+                        //we want to loop around so we check for right overhangs
                         while (rightScanner < line.x2 && !Inside(leftIndex + rightScanner))
                             rightScanner++;
                         leftScanner = rightScanner;
                     }
                 }
             }
-
-            /*
-             fn fill(x, y):
-                //this check won't exist
-              if not Inside(x, y) then return
-              
-            let s = new empty queue or stack
-              Add (x, x, y, 1) to s
-              Add (x, x, y - 1, -1) to s
-
-              while s is not empty:
-                Remove an (x1, x2, y, dy) from s
-                let x = x1
-                //scan for a new left edge, setting tiles as we go
-                if Inside(x, y):
-                  while Inside(x - 1, y):
-                    Set(x - 1, y)
-                    x = x - 1
-                //x is now the new leftmost edge for this row
-                //if we made it further left, add a line that mimics the overhang in one direction
-                if x < x1:
-                  Add (x, x1-1, y-dy, -dy) to s
-                
-                //go over the main part of the line
-                while x1 <= x2:
-                  
-                  while Inside(x1, y):
-                    Set(x1, y) //do the normal drawing
-                    x1 = x1 + 1
-                    //add a new line that's one above
-                    Add (x, x1 - 1, y+dy, dy) to s
-                    //if we've passed the right edge, add a new line one above?
-                    if x1 - 1 > x2:
-                      Add (x2 + 1, x1 - 1, y-dy, -dy) to s
-                  //
-                  x1 = x1 + 1
-                  while x1 < x2 and not Inside(x1, y):
-                    x1 = x1 + 1
-                  x = x1
-            */
-
         }
 
         //TODO this is mostly copy-paste from TKT's code, but the other one uses an Avalonia rect, so...
