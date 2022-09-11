@@ -416,9 +416,11 @@ namespace CaveStoryModdingFramework.Editors
             Selection.CursorY = y2 - r.Top;
         }
 
-        public TileEditor(string pxmPath, ChangeTracker<object> changeTracker)
+        public TileEditor(string pxmPath, ChangeTracker<object> changeTracker) : this(new Map(pxmPath), changeTracker)
+        { }
+        public TileEditor(Map tiles, ChangeTracker<object> changeTracker)
         {
-            Tiles = new Map(pxmPath);
+            Tiles = tiles;
 
             History = changeTracker;
             History.UndoRequested += OnUndoRequested;
