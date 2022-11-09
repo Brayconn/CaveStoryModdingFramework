@@ -51,7 +51,6 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\LocalizeableComponentModel\LocalizeableComponentModel\LocalizeableComponentModel.csproj" />
     <ProjectReference Include="..\..\PETools\PETools\PETools.csproj" />
     <ProjectReference Include="..\..\PixelModdingFramework\PixelModdingFramework\PixelModdingFramework.csproj" />
   </ItemGroup>

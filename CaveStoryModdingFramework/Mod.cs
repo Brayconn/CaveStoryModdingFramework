@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
-using LocalizeableComponentModel;
 using System.Text;
 using System.Drawing;
 using System.Xml;
@@ -23,17 +22,16 @@ namespace CaveStoryModdingFramework
         
         public event EventHandler StageTableTypeChanged;
         
-        [LocalizeableCategory(nameof(Dialog.ModStageTableCategory), typeof(Dialog))]
         [XmlIgnore]
         public StageTablePresets StageTablePreset { get; set; }
 
-        [LocalizeableCategory(nameof(Dialog.ModStageTableCategory), typeof(Dialog)), TypeConverter(typeof(ExpandableObjectConverter))]
+        
         public StageTableEntrySettings StageTableSettings { get; private set; }
 
-        [LocalizeableCategory(nameof(Dialog.ModStageTableCategory), typeof(Dialog)), TypeConverter(typeof(ExpandableObjectConverter))]
+        
         public StageTableReferences InternalStageTableReferences { get; private set; } = new StageTableReferences();
 
-        [LocalizeableCategory(nameof(Dialog.ModStageTableCategory), typeof(Dialog)), TypeConverter(typeof(ExpandableObjectConverter))]
+        
         public StageTableLocation StageTableLocation { get; set; }
         #endregion
 
@@ -48,30 +46,25 @@ namespace CaveStoryModdingFramework
 
         #region path/folder stuff
 
-        [LocalizeableCategory(nameof(Dialog.FoldersCategory), typeof(Dialog))]
         public string EXEPath { get; set; }
         
-        [LocalizeableCategory(nameof(Dialog.FoldersCategory), typeof(Dialog))]
         public string BaseDataPath { get; set; }
 
-        [LocalizeableCategory(nameof(Dialog.FoldersCategory), typeof(Dialog)), TypeConverter(typeof(ExpandableObjectConverter))]
         public AssetManager FolderPaths { get; private set; }
 
 
-        [LocalizeableCategory(nameof(Dialog.FoldersCategory), typeof(Dialog))]
         public NPCTableLocation NpcTableLocation { get; set; }
 
-        [LocalizeableCategory(nameof(Dialog.FoldersCategory), typeof(Dialog)), TypeConverter(typeof(ExpandableObjectConverter))]
+
         public BulletTableLocation BulletTableLocation { get; private set; }
 
         #endregion
 
-        [LocalizeableCategory(nameof(Dialog.TilesCategory), typeof(Dialog))]
         public int TileSize { get; set; } = 16;
 
         #region images
 
-        [LocalizeableCategory(nameof(Dialog.ImagesCategory), typeof(Dialog))]
+       
         public Color TransparentColor { get; set; } = Color.Black;
 
         public event EventHandler CopyrightTextChanged;
@@ -80,7 +73,7 @@ namespace CaveStoryModdingFramework
         /// What text should appear at the end of each image.
         /// NOT null terminated.
         /// </summary>
-        [LocalizeableCategory(nameof(Dialog.ImagesCategory), typeof(Dialog))]
+       
         public string CopyrightText
         {
             get => copyrightText;
@@ -100,7 +93,7 @@ namespace CaveStoryModdingFramework
 
         public event EventHandler TilesetPrefixChanged;
         string tilesetPrefix = Maps.Attribute.DefaultPrefix;
-        [LocalizeableCategory(nameof(Dialog.ModFilenameCategory), typeof(Dialog)), DefaultValue(Maps.Attribute.DefaultPrefix)]
+        
         public string TilesetPrefix
         {
             get => tilesetPrefix;
@@ -114,12 +107,12 @@ namespace CaveStoryModdingFramework
             }
         }
 
-        [LocalizeableCategory(nameof(Dialog.ModFilenameCategory), typeof(Dialog)), DefaultValue("Npc")]
+       
         public string SpritesheetPrefix { get; set; } = "Npc";
 
         public event EventHandler StageExtensionChanged;
         string stageExtension = Map.DefaultExtension;
-        [LocalizeableCategory(nameof(Dialog.ModFilenameCategory), typeof(Dialog)), DefaultValue(Map.DefaultExtension)]
+       
         public string StageExtension
         {
             get => stageExtension;
@@ -135,7 +128,7 @@ namespace CaveStoryModdingFramework
 
         public event EventHandler EntityExtensionChanged;
         string entityExtension = PXE.DefaultExtension;
-        [LocalizeableCategory(nameof(Dialog.ModFilenameCategory), typeof(Dialog)), DefaultValue(PXE.DefaultExtension)]
+     
         public string EntityExtension
         {
             get => entityExtension;
@@ -151,7 +144,7 @@ namespace CaveStoryModdingFramework
                 
         public event EventHandler ImageExtensionChanged;
         string imageExtension = Images.DefaultImageExtension;
-        [LocalizeableCategory(nameof(Dialog.ModFilenameCategory), typeof(Dialog)), DefaultValue(Images.DefaultImageExtension)]
+     
         public string ImageExtension
         {
             get => imageExtension;
@@ -167,7 +160,7 @@ namespace CaveStoryModdingFramework
 
         public event EventHandler TSCExtensionChanged;
         string tscExtension = "tsc";
-        [LocalizeableCategory(nameof(Dialog.ModFilenameCategory), typeof(Dialog)), DefaultValue("tsc")]
+      
         public string TSCExtension
         {
             get => tscExtension;
@@ -183,7 +176,7 @@ namespace CaveStoryModdingFramework
 
         public event EventHandler AttributeExtensionChanged;
         string attributeExtension = Maps.Attribute.DefaultExtension; //TODO why is this hardcoded? there's a class for this
-        [LocalizeableCategory(nameof(Dialog.ModFilenameCategory), typeof(Dialog)), DefaultValue(Maps.Attribute.DefaultExtension)]
+      
         public string AttributeExtension
         {
             get => attributeExtension;
@@ -200,13 +193,13 @@ namespace CaveStoryModdingFramework
         #endregion
 
         #region TSC
-        [LocalizeableCategory(nameof(Dialog.ModTSCOptions), typeof(Dialog)), DefaultValue(false)]
+       
         public bool UseScriptSource { get; set; } = false;
-        [LocalizeableCategory(nameof(Dialog.ModTSCOptions),typeof(Dialog)), DefaultValue(true)]
+       
         public bool TSCEncrypted { get; set; } = true;
-        [LocalizeableCategory(nameof(Dialog.ModTSCOptions), typeof(Dialog)), DefaultValue(7)]
+       
         public byte DefaultKey { get; set; } = 7;
-        [LocalizeableCategory(nameof(Dialog.ModTSCOptions), typeof(Dialog)), TypeConverter(typeof(EncodingTypeConverter))]
+       
         public Encoding TSCEncoding { get; set; } = Encoding.ASCII;
                 
         public List<Command> Commands { get; set; }
@@ -215,9 +208,9 @@ namespace CaveStoryModdingFramework
 
         #region gameplay
 
-        [LocalizeableCategory(nameof(Dialog.GameplayCategory), typeof(Dialog))]
+       
         public int ScreenWidth { get; set; } = 320;
-        [LocalizeableCategory(nameof(Dialog.GameplayCategory), typeof(Dialog))]
+       
         public int ScreenHeight { get; set; } = 240;
 
         #endregion

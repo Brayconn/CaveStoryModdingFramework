@@ -1,12 +1,9 @@
-﻿using LocalizeableComponentModel;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Text;
 
 namespace CaveStoryModdingFramework.Entities
 {
@@ -93,17 +90,11 @@ namespace CaveStoryModdingFramework.Entities
             NotifyPropertyChanged(propertyName);
         }
 
-        [LocalizeableDescription(nameof(Dialog.XDescription), typeof(Dialog))]
         public short? X { get => GetProperty<short>(); set => SetProperty(value); }
-        [LocalizeableDescription(nameof(Dialog.YDescription), typeof(Dialog))]
         public short? Y { get => GetProperty<short>(); set => SetProperty(value); }
-        [LocalizeableDescription(nameof(Dialog.FlagDescription), typeof(Dialog))]
         public short? Flag { get => GetProperty<short>(); set => SetProperty(value); }
-        [LocalizeableDescription(nameof(Dialog.EventDescription), typeof(Dialog))]
         public short? Event { get => GetProperty<short>(); set => SetProperty(value); }
-        [LocalizeableDescription(nameof(Dialog.TypeDescription), typeof(Dialog))]
         public short? Type { get => GetProperty<short>(); set => SetProperty(value); }
-        [LocalizeableDescription(nameof(Dialog.BitsDescription), typeof(Dialog))]
         public EntityFlags? Bits { get => GetProperty<EntityFlags>(); set => SetProperty(value); }
 
 
@@ -122,21 +113,11 @@ namespace CaveStoryModdingFramework.Entities
     {
         readonly Entity host;
 
-
-        [LocalizeableDescription(nameof(Dialog.XDescription), typeof(Dialog))]
         public short X { get => host.X; set => host.X = value; }
-
-        [LocalizeableDescription(nameof(Dialog.YDescription), typeof(Dialog))]
         public short Y { get => host.Y; set => host.Y = value; }
-        [LocalizeableDescription(nameof(Dialog.FlagDescription), typeof(Dialog))]
         public short Flag { get => host.Flag; set => host.Flag = value; }
-        [LocalizeableDescription(nameof(Dialog.EventDescription), typeof(Dialog))]
         public short Event { get => host.Event; set => host.Event = value; }
-
-        [LocalizeableDescription(nameof(Dialog.TypeDescription), typeof(Dialog))]
         public short Type { get => host.Type; set => host.Type = value; }
-
-        [LocalizeableDescription(nameof(Dialog.BitsDescription), typeof(Dialog))]
         public EntityFlags Bits { get => host.Bits; set => host.Bits = value; }
 
         protected EntityShell(Entity e)

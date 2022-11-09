@@ -1,5 +1,4 @@
-﻿using LocalizeableComponentModel;
-using System;
+﻿using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
@@ -52,22 +51,22 @@ namespace CaveStoryModdingFramework
         /// <summary>
         /// Labeled as "Front" in CS.
         /// </summary>
-        [LocalizeableDescription(nameof(Dialog.LeftOffsetDescription), typeof(Dialog))]
+        
         public int LeftOffset { get => leftOffset; set => SetVal(ref leftOffset, value); }
         /// <summary>
         /// Labeled as "Top" in CS.
         /// </summary>
-        [LocalizeableDescription(nameof(Dialog.YOffsetDescription), typeof(Dialog))]
+        
         public int YOffset { get => yOffset; set => SetVal(ref yOffset, value); }
         /// <summary>
         /// Labeled as "Back" in CS.
         /// </summary>
-        [LocalizeableDescription(nameof(Dialog.RightOffsetDescription), typeof(Dialog))]
+        
         public int RightOffset { get => rightOffset; set => SetVal(ref rightOffset, value); }
         /// <summary>
         /// Labeled as "Bottom" in CS. It goes unused in the default sprite renderer
         /// </summary>
-        [LocalizeableDescription(nameof(Dialog.UnusedDescription), typeof(Dialog))]
+        
         public int Unused { get => unused; set => SetVal(ref unused, value); }
 
         public BulletViewRect(int leftOffset, int yOffset, int rightOffset, int unused)
@@ -177,22 +176,22 @@ namespace CaveStoryModdingFramework
         /// <summary>
         /// Labeled as "Front" in CS.
         /// </summary>
-        [LocalizeableDescription(nameof(Dialog.LeftOffsetDescription), typeof(Dialog))]
+        
         public byte LeftOffset { get => a; set => SetVal(ref a, value); }
         /// <summary>
         /// Labeled as "Top" in CS.
         /// </summary>
-        [LocalizeableDescription(nameof(Dialog.YOffsetDescription), typeof(Dialog))]
+        
         public byte YOffset { get => b; set => SetVal(ref b, value); }
         /// <summary>
         /// Labeled as "Back" in CS.
         /// </summary>
-        [LocalizeableDescription(nameof(Dialog.RightOffsetDescription), typeof(Dialog))]
+        
         public byte RightOffset { get => c; set => SetVal(ref c, value); }
         /// <summary>
         /// Labeled as "Bottom" in CS. It goes unused in the default sprite renderer
         /// </summary>
-        [LocalizeableDescription(nameof(Dialog.UnusedDescription), typeof(Dialog))]
+        
         public byte Unused { get => d; set => SetVal(ref d, value); }
 
         public NPCViewRect() { }
@@ -211,16 +210,16 @@ namespace CaveStoryModdingFramework
     [DebuggerDisplay("Front = {Front} Top = {Top} Back = {Back} Bottom = {Bottom}")]
     public class NPCHitRect : ByteRect
     {
-        [LocalizeableDescription(nameof(Dialog.FrontDescription), typeof(Dialog))]
+        
         public byte Front { get => a; set => SetVal(ref a, value); }
 
-        [LocalizeableDescription(nameof(Dialog.TopDescription), typeof(Dialog))]
+        
         public byte Top { get => b; set => SetVal(ref b, value); }
 
-        [LocalizeableDescription(nameof(Dialog.BackDescription), typeof(Dialog))]
+        
         public byte Back { get => c; set => SetVal(ref c, value); }
 
-        [LocalizeableDescription(nameof(Dialog.BottomDescription), typeof(Dialog))]
+        
         public byte Bottom { get => d; set => SetVal(ref d, value); }
 
         public NPCHitRect() { }
