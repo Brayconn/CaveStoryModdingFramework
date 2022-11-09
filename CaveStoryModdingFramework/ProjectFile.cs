@@ -153,7 +153,7 @@ namespace CaveStoryModdingFramework
         public Color ImageTransparentColor { get; set; } = Color.Black;
 
         public bool ImagesCopyrighted { get; set; }
-        public string ImageCopyrightText { get; set; }
+        public string ImageCopyrightText { get; set; } = "(C)Pixel";
 
         //this prefix is fake, but useful for user display maybe?
         public string BackgroundPrefix { get; set; } = "bk";
