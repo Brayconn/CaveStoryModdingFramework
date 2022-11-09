@@ -1,6 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <ProjectGuid>{00C92507-872A-47C4-A632-6946B0F0935E}</ProjectGuid>
     <TargetFrameworks>netstandard2.0;net461;net5.0;net6.0</TargetFrameworks>
     <AssemblyTitle>CaveStoryModdingFramework</AssemblyTitle>
     <Product>CaveStoryModdingFramework</Product>
