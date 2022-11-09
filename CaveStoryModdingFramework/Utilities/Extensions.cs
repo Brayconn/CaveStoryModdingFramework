@@ -140,6 +140,19 @@ namespace CaveStoryModdingFramework
             return StreamToUse;
         }
 
+        public static bool CheckBytes(this Stream stream, byte[] seq)
+        {
+            for(int i = 0; i < seq.Length;)
+            {
+                if (stream.ReadByte() != seq[i++])
+                {
+                    stream.Position -= i;
+                    return false;
+                }
+            }
+            return true;
+        }
+
         public static long FindBytes(this Stream stream, byte[] seq)
         {
             var counter = 0;
