@@ -423,7 +423,7 @@ namespace CaveStoryModdingFramework.Entities
             {352,new EntityInfo("Credits-Drop Universal NPC",new Rectangle(224,32,14,16))},
             {353,new EntityInfo("Bute, flying, 2 (enemy)",new Rectangle(198,158,18,18))},
             {354,new EntityInfo("Invisible deathtrap wall",new Rectangle(0,0,0,0))},
-            {355,new EntityInfo("Balrog, crashing through wall",new Rectangle(0,0,0,0)){ PXEFunctionality=PXECompatability.Crash }},
+            {355,new EntityInfo("Quote+Curly, Balrog ending cutscenes",new Rectangle(0,0,0,0)){ PXEFunctionality=PXECompatability.Crash }},
             {356,new EntityInfo("Balrog, rescue",new Rectangle(0,0,40,24))},
             {357,new EntityInfo("Puppy, ghost",new Rectangle(224,137,16,16))},
             {358,new EntityInfo("Misery, tall, wind",new Rectangle(208,10,14,22))},
