@@ -280,7 +280,7 @@ namespace CaveStoryModdingFramework.Editors
 
                     //now we FOR SURE have a valid event token
                     Tokens[index].Add(new TSCEventToken(data, num, ArgumentEncoding,
-                        data.Count == EventLength ? TSCTokenValidity.Valid : TSCTokenValidity.Warning));
+                        data.Count == EventStart.Length + EventLength ? TSCTokenValidity.Valid : TSCTokenValidity.Warning));
                 }
                 else if (WorkingBuffer.CheckBytes(EventEnd))
                 {
@@ -301,6 +301,7 @@ namespace CaveStoryModdingFramework.Editors
                 {
                     var expected = TextNewline.Length + TextNewLineAdvance;
                     var data = new List<byte>(expected);
+                    data.AddRange(TextNewline);
                     data.AddRange(WorkingBuffer.ReadUntilLengthOrSequences(TextNewLineAdvance, EventStart));
                     Tokens[index++].Add(new TSCTextToken(data.ToArray(), TextEncoding, TSCTextTypes.Ignore,
                         data.Count == expected ? TSCTokenValidity.Valid : TSCTokenValidity.Error));
