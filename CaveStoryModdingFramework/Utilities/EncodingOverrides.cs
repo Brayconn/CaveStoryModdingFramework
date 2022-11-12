@@ -143,7 +143,19 @@ namespace CaveStoryModdingFramework.Utilities
         {
             int result = 0;
             for (int i = 0; i < count; i++)
-                result += CharMap[bytes[index + i]].Length;
+            {
+                switch(bytes[index + i])
+                {
+                    case (byte)'\t':
+                    case (byte)'\n':
+                    case (byte)'\r':
+                        result += ForceOneCharWidth ? 4 : 1;
+                        break;
+                    default:
+                        result += CharMap[bytes[index + i]].Length;
+                        break;
+                }
+            }
             return result;
         }
 
