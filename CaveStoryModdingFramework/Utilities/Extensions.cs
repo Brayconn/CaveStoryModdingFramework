@@ -140,7 +140,7 @@ namespace CaveStoryModdingFramework
             return StreamToUse;
         }
 
-        public static bool CheckBytes(this Stream stream, byte[] seq)
+        public static bool CheckBytes(this Stream stream, byte[] seq, bool peek = false)
         {
             for(int i = 0; i < seq.Length;)
             {
@@ -150,6 +150,8 @@ namespace CaveStoryModdingFramework
                     return false;
                 }
             }
+            if (peek)
+                stream.Position -= seq.Length;
             return true;
         }
 
