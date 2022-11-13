@@ -206,15 +206,30 @@ namespace CaveStoryModdingFramework.Utilities
         public static Encoding GetEncoding(int codepage)
         {
             if (codepage == Encoding.ASCII.CodePage)
+            {
                 return EscapedASCII;
+            }
             else
+            {
+#if NETCOREAPP
+                    //.NET Core will throw an exception if the requested encoding isn't already loaded
+                    Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+#endif
                 return Encoding.GetEncoding(codepage, new EncoderExceptionFallback(), new EscapedByteDecoderFallback());
+        }
         }
         public static Encoding GetEncoding(string name)
         {
             if (name == Encoding.ASCII.EncodingName)
+            {
                 return EscapedASCII;
+            }
             else
+            {
+#if NETCOREAPP
+                    //.NET Core will throw an exception if the requested encoding isn't already loaded
+                    Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+#endif
                 return Encoding.GetEncoding(name, new EncoderExceptionFallback(), new EscapedByteDecoderFallback());
         }
     }
