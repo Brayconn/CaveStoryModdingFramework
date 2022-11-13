@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Text;
 
 namespace CaveStoryModdingFramework.Utilities
@@ -15,11 +14,19 @@ namespace CaveStoryModdingFramework.Utilities
     }
     public class EscapedByteDecoderFallbackBuffer : DecoderFallbackBuffer
     {
-        const int max = 4;
-        int remaining = 4;
+        int remaining;
         public override int Remaining => remaining;
 
-        string escaped = @"\x";
+        string escaped;
+        int max;
+
+        public EscapedByteDecoderFallbackBuffer()
+        {
+            escaped = new string(EscapedASCII.EscapeChar, EscapedASCII.EscapeHexChar);
+            max = escaped.Length + 2;
+            remaining = max;
+        }
+
         public override bool Fallback(byte[] bytesUnknown, int index)
         {
             escaped += Convert.ToString(bytesUnknown[0], 16) + "\0";
@@ -48,6 +55,11 @@ namespace CaveStoryModdingFramework.Utilities
     /// </summary>
     public class EscapedASCII : Encoding
     {
+        public const char EscapeChar = '\\';
+        public const byte EscapeByte = (byte)EscapeChar;
+
+        public const char EscapeHexChar = 'x';
+        public const byte EscapeHexByte = (byte)EscapeHexChar;
         static bool IsHexDigit(char c)
         {
             return ('0' <= c && c <= '9')
@@ -59,26 +71,45 @@ namespace CaveStoryModdingFramework.Utilities
             int result = 0;
             for(int i = 0; i < count; i++)
             {
-                //if the current character is a potential escape sequence
-                //and there's room to actually check...
-                if (chars[index + i] == '\\')
+                //if the current character is a potential escape sequence...
+                if (chars[index + i] == EscapeChar)
                 {
-                    //check for an escaped byte sequence
-                    if (count - i >= 4 &&
-                        chars[index + i + 1] == 'x' &&
-                        IsHexDigit(chars[index + i + 2]) &&
-                        IsHexDigit(chars[index + i + 3]))
+                    var remaining = count - (i + 1);
+                    //there should be at least ONE character it's escaping
+                    if(remaining >= 1)
                     {
-                        //this plus the for loop's i++ will skip to the next correct char
-                        i += 3;
+                        switch(chars[index + i + 1])
+                        {
+                            //ah, it's just escaping the escape character
+                            case EscapeChar:
+                                //skip past it so we don't double count
+                                i++;
+                                break;
+                            case EscapeHexChar:
+                                //escaped bytes need room to exist
+                                if (remaining >= 3)
+                                {
+                                    if(IsHexDigit(chars[index + i + 2]) &&
+                                       IsHexDigit(chars[index + i + 3]))
+                                    {
+                                        //valid escaped byte! this will turn into 1 byte of output
+                                        //this plus the for loop's i++ will skip to the next correct char
+                                        i += 3;
+                                    }
+                                    else if(ThrowOnInvalidEscapeSequence)
+                                        throw new EncoderFallbackException($"Invalid escaped byte at {index + i}");
+                                }
+                                else if(ThrowOnInvalidEscapeSequence)
+                                    throw new EncoderFallbackException($"Not enough room for escaped byte at {index + i}");
+                                break;
+                            default:
+                                if(ThrowOnInvalidEscapeSequence)
+                                    throw new EncoderFallbackException($"Unknown escape sequence at index {index + i}");
+                                break;
+                        }
                     }
-                    //escaped slash?
-                    else if (count - i >= 1 && chars[index + i + 1] == '\\')
-                    {
-                        result++;
-                    }
-                    else
-                        throw new EncoderFallbackException($"Unknown escape sequence at index {index + i}");
+                    else if(ThrowOnInvalidEscapeSequence)
+                        throw new EncoderFallbackException($"Escape sequence at end of stream! {index + i}");
                 }
                 result++;
             }
@@ -90,30 +121,49 @@ namespace CaveStoryModdingFramework.Utilities
             int i;
             for(i = 0; i < charCount; i++)
             {
-                if(chars[charIndex + i] == '\\')
+                if(chars[charIndex + i] == EscapeChar)
                 {
-                    //if there's enough room for an escaped byte, check for one
-                    if (charCount - i >= 4 &&
-                   chars[charIndex + i + 1] == 'x' &&
-                   IsHexDigit(chars[charIndex + i + 2]) &&
-                   IsHexDigit(chars[charIndex + i + 3]))
+                    var remaining = charCount - (i + 1);
+                    if (remaining >= 1)
                     {
-                        bytes[byteIndex++] = System.Convert.ToByte(new string(chars[charIndex + i + 2], chars[charIndex + i + 3]), 16);
-                        i += 3;
+                        switch (chars[charIndex + i + 1])
+                        {
+                            //false alarm, just need to NOT write the second EscapeChar
+                            case EscapeChar:
+                                i++;
+                                break;
+                            case EscapeHexChar:
+                                //escaped bytes need room to exist
+                                if (remaining >= 3)
+                                {
+                                    if (IsHexDigit(chars[charIndex + i + 2]) &&
+                                       IsHexDigit(chars[charIndex + i + 3]))
+                                    {
+                                        //write the escaped byte
+                                        var c = new char[2];
+                                        Array.Copy(chars, charIndex + i + 2, c, 0, 2);
+                                        bytes[byteIndex++] = System.Convert.ToByte(new string(c), 16);
+                                        //this plus the for loop's i++ will skip to the next correct char
+                                        i += 3;
+                                        //DON'T fallthrough to the default printing code below
+                                        continue;
+                                    }
+                                    else if (ThrowOnInvalidEscapeSequence)
+                                        throw new EncoderFallbackException($"Invalid escaped byte at {charIndex + i}");
+                                }
+                                else if (ThrowOnInvalidEscapeSequence)
+                                    throw new EncoderFallbackException($"Not enough room for escaped byte at {charIndex + i}");
+                                break;
+                            default:
+                                if (ThrowOnInvalidEscapeSequence)
+                                    throw new EncoderFallbackException($"Unknown escape sequence at index {charIndex + i}");
+                                break;
+                        }
                     }
-                    //okay, maybe it's an escaped slash?
-                    else if (charCount - i >= 1 && chars[charIndex + i + 1] == '\\')
-                    {
-                        bytes[byteIndex++] = (byte)'\\';
-                        bytes[byteIndex++] = (byte)'\\';
-                        i++;
-                    }
-                    //idk lol
-                    else
-                        throw new EncoderFallbackException($"Unknown escape sequence at index {charIndex + i}");
+                    else if (ThrowOnInvalidEscapeSequence)
+                        throw new EncoderFallbackException($"Escape sequence at end of stream! {charIndex + i}");
                 }
-                else
-                    bytes[byteIndex++] = (byte)chars[charIndex + i];
+                bytes[byteIndex++] = (byte)chars[charIndex + i];
             }
             return i;
         }
@@ -192,17 +242,18 @@ namespace CaveStoryModdingFramework.Utilities
         //byteCount * 4 would be if every byte needed to be escaped
         public override int GetMaxCharCount(int byteCount) => byteCount * 4;
 
-        public bool ForceOneCharWidth { get; private set; }
-        public EscapedASCII(bool forceOneCharWidth = false)
-        {
-            ForceOneCharWidth = forceOneCharWidth;
-        }
+        /// <summary>
+        /// When true, tabs, newlines, and carriage returns will be escaped instead of printed normally
+        /// </summary>
+        public bool ForceOneCharWidth { get; set; } = false;
+
+        public bool ThrowOnInvalidEscapeSequence { get; set; } = false;
     }
 
     public static class EncodingOverrides
     {
         public static Encoding EscapedASCII { get; } = new EscapedASCII();
-        public static Encoding EscapedOneCharWideASCII { get; } = new EscapedASCII(true);
+        public static Encoding EscapedOneCharWideASCII { get; } = new EscapedASCII() { ForceOneCharWidth = true };
         public static Encoding GetEncoding(int codepage)
         {
             if (codepage == Encoding.ASCII.CodePage)
@@ -216,7 +267,7 @@ namespace CaveStoryModdingFramework.Utilities
                     Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 #endif
                 return Encoding.GetEncoding(codepage, new EncoderExceptionFallback(), new EscapedByteDecoderFallback());
-        }
+            }
         }
         public static Encoding GetEncoding(string name)
         {
@@ -231,6 +282,6 @@ namespace CaveStoryModdingFramework.Utilities
                     Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 #endif
                 return Encoding.GetEncoding(name, new EncoderExceptionFallback(), new EscapedByteDecoderFallback());
+            }
         }
-    }
 }
