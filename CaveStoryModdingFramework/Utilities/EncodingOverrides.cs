@@ -60,12 +60,7 @@ namespace CaveStoryModdingFramework.Utilities
 
         public const char EscapeHexChar = 'x';
         public const byte EscapeHexByte = (byte)EscapeHexChar;
-        static bool IsHexDigit(char c)
-        {
-            return ('0' <= c && c <= '9')
-                || ('A' <= c && c <= 'F')
-                || ('a' <= c && c <= 'f');
-        }
+        
         public override int GetByteCount(char[] chars, int index, int count)
         {
             int result = 0;
@@ -89,8 +84,8 @@ namespace CaveStoryModdingFramework.Utilities
                                 //escaped bytes need room to exist
                                 if (remaining >= 3)
                                 {
-                                    if(IsHexDigit(chars[index + i + 2]) &&
-                                       IsHexDigit(chars[index + i + 3]))
+                                    if(Extensions.IsHexDigit(chars[index + i + 2]) &&
+                                       Extensions.IsHexDigit(chars[index + i + 3]))
                                     {
                                         //valid escaped byte! this will turn into 1 byte of output
                                         //this plus the for loop's i++ will skip to the next correct char
@@ -136,8 +131,8 @@ namespace CaveStoryModdingFramework.Utilities
                                 //escaped bytes need room to exist
                                 if (remaining >= 3)
                                 {
-                                    if (IsHexDigit(chars[charIndex + i + 2]) &&
-                                       IsHexDigit(chars[charIndex + i + 3]))
+                                    if (Extensions.IsHexDigit(chars[charIndex + i + 2]) &&
+                                       Extensions.IsHexDigit(chars[charIndex + i + 3]))
                                     {
                                         //write the escaped byte
                                         var c = new char[2];
@@ -258,7 +253,7 @@ namespace CaveStoryModdingFramework.Utilities
         {
             if (codepage == Encoding.ASCII.CodePage)
             {
-                return EscapedASCII;
+                return new EscapedASCII();
             }
             else
             {
@@ -273,7 +268,7 @@ namespace CaveStoryModdingFramework.Utilities
         {
             if (name == Encoding.ASCII.EncodingName)
             {
-                return EscapedASCII;
+                return new EscapedASCII();
             }
             else
             {
@@ -284,4 +279,5 @@ namespace CaveStoryModdingFramework.Utilities
                 return Encoding.GetEncoding(name, new EncoderExceptionFallback(), new EscapedByteDecoderFallback());
             }
         }
+    }
 }

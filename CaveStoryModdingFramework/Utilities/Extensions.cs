@@ -64,6 +64,12 @@ namespace CaveStoryModdingFramework
                 ? new byte[] { (byte)conv }
                 : BitConverter.GetBytes(conv);
         }
+        public static bool IsHexDigit(char c)
+        {
+            return ('0' <= c && c <= '9')
+                || ('A' <= c && c <= 'F')
+                || ('a' <= c && c <= 'f');
+        }
 
         /*
         public static T?[] ToNullable<T>(this T[] array) where T : struct
