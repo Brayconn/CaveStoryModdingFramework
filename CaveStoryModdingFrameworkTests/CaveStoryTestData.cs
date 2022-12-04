@@ -26,7 +26,17 @@ namespace CaveStoryModdingFrameworkTests
                     client.DownloadFile(url, tempFile);
                 }
                 Process cmd = new Process();
-                cmd.StartInfo.FileName = @"C:/Program Files/7-zip/7z.exe"; //TODO 7-zip isn't always here?
+                switch (Environment.OSVersion.Platform)
+                {
+                    case PlatformID.Win32NT:
+                        cmd.StartInfo.FileName = @"C:/Program Files/7-zip/7z.exe";
+                        break;
+                    case PlatformID.Unix:
+                        cmd.StartInfo.FileName = @"/usr/bin/7z";
+                        break;
+                    default:
+                        return;
+                }
                 cmd.StartInfo.Arguments = $"x \"{tempFile}\" -o\"{output}\" -y"; //Spacing on these args is important
                 cmd.StartInfo.RedirectStandardInput = true;
                 cmd.StartInfo.RedirectStandardOutput = true;
