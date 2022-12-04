@@ -514,11 +514,12 @@ namespace CaveStoryModdingFramework.Editors
                     eventData.AddRange(EventStart);
 
                     //these bytes are free
-                    for (int i = 0; i < EventAdvance; i++)
+                    for (int i = 0; data.Position < data.Length && i < EventAdvance; i++)
                         eventData.Add((byte)data.ReadByte());
-
+                    
                     //add the rest if possible
-                    eventData.AddRange(data.ReadUntilLengthOrSequences(EventLength - EventAdvance, EventStart, EventEnd));
+                    if(data.Position < data.Length)
+                        eventData.AddRange(data.ReadUntilLengthOrSequences(EventLength - EventAdvance, EventStart, EventEnd));
 
                     AppendToBuffer(EncodingOverrides.EscapedOneCharWideASCII.GetString(eventData.ToArray()));
                 }

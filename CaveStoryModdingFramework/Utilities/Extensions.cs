@@ -148,17 +148,17 @@ namespace CaveStoryModdingFramework
 
         public static bool CheckBytes(this Stream stream, byte[] seq, bool peek = false)
         {
-            for(int i = 0; i < seq.Length;)
+            int i;
+            for(i = 0; stream.Position < stream.Length && i < seq.Length; i++)
             {
-                if (stream.ReadByte() != seq[i++])
-                {
-                    stream.Position -= i;
-                    return false;
-                }
+                if (stream.ReadByte() != seq[i])
+                    break;
             }
-            if (peek)
+            if (i < seq.Length)
+                stream.Position -= i + 1;
+            else if (peek)
                 stream.Position -= seq.Length;
-            return true;
+            return i == seq.Length;
         }
 
         public static long FindBytes(this Stream stream, byte[] seq)
