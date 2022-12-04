@@ -171,7 +171,7 @@ namespace CaveStoryModdingFramework.Utilities
             " ",     "!",     "\"",    "#",     "$",     "%",     "&",     "'",     "(",     ")",     "*",     "+",     ",",     "-",     ".",     "/",
             "0",     "1",     "2",     "3",     "4",     "5",     "6",     "7",     "8",     "9",     ":",     ";",     "<",     "=",     ">",     "?",
             "@",     "A",     "B",     "C",     "D",     "E",     "F",     "G",     "H",     "I",     "J",     "K",     "L",     "M",     "N",     "O",
-            "P",     "Q",     "R",     "S",     "T",     "U",     "V",     "W",     "X",     "Y",     "Z",     "[",     @"\\",    "]",     "^",     "_",
+            "P",     "Q",     "R",     "S",     "T",     "U",     "V",     "W",     "X",     "Y",     "Z",     "[",     "\\",    "]",     "^",     "_",
             "`",     "a",     "b",     "c",     "d",     "e",     "f",     "g",     "h",     "i",     "j",     "k",     "l",     "m",     "n",     "o",
             "p",     "q",     "r",     "s",     "t",     "u",     "v",     "w",     "x",     "y",     "z",     "{",     "|",     "}",     "~",     @"\x7F",
             @"\x80", @"\x81", @"\x82", @"\x83", @"\x84", @"\x85", @"\x86", @"\x87", @"\x88", @"\x89", @"\x8A", @"\x8B", @"\x8C", @"\x8D", @"\x8E", @"\x8F",
@@ -195,6 +195,9 @@ namespace CaveStoryModdingFramework.Utilities
                     case (byte)'\n':
                     case (byte)'\r':
                         result += ForceOneCharWidth ? 4 : 1;
+                        break;
+                    case EscapeByte:
+                        result += DoubleEscapeBytes ? 2 : 1;
                         break;
                     default:
                         result += CharMap[bytes[index + i]].Length;
@@ -221,6 +224,9 @@ namespace CaveStoryModdingFramework.Utilities
                     case (byte)'\r' when ForceOneCharWidth:
                         charData = @"\x0D";
                         break;
+                    case EscapeByte when DoubleEscapeBytes:
+                        charData = new string(new char[] { EscapeChar, EscapeChar });
+                        break;
                     default:
                         charData = CharMap[bytes[byteIndex + i]];
                         break;
@@ -242,7 +248,15 @@ namespace CaveStoryModdingFramework.Utilities
         /// </summary>
         public bool ForceOneCharWidth { get; set; } = false;
 
+        /// <summary>
+        /// When converting a string to bytes, throw an exception when an invalid escape sequence is encountered
+        /// </summary>
         public bool ThrowOnInvalidEscapeSequence { get; set; } = false;
+
+        /// <summary>
+        /// When converting bytes to a string, turn "\" into "\\" so it won't be read as an escape sequence when converting back to bytes
+        /// </summary>
+        public bool DoubleEscapeBytes { get; set; } = true;
     }
 
     public static class EncodingOverrides
