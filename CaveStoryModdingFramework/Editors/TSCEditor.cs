@@ -70,6 +70,14 @@ namespace CaveStoryModdingFramework.Editors
             return buff.ToArray();
         }
 
+        public static bool StartsWith<T>(this IList<T> list1, IList<T> list2) where T : IComparable
+        {
+            for (int i = 0; i < list2.Count; i++)
+                if (list1[i].CompareTo(list2[i]) != 0)
+                    return false;
+            return true;
+        }
+
         public static T[] Read<T>(this LinkedListNode<T> node, int length)
         {
             var output = new T[length];
@@ -81,17 +89,16 @@ namespace CaveStoryModdingFramework.Editors
             }
             return output;
         }
-        static T Getvance<T>(ref LinkedListNode<T> node)
+        
+        static bool GetAndAdvance<T>(ref LinkedListNode<T> node, out T value)
         {
-            var v = node.Value;
-            node = node.Next;
-            return v;
+            value = node.Value;
+            return Advance(ref node) == 1;
         }
-        static T Addvance<T>(ref LinkedListNode<T> node, IList<T> list)
+        static bool AddAndAdvance<T>(ref LinkedListNode<T> node, IList<T> list)
         {
             list.Add(node.Value);
-            node = node.Next;
-            return list[list.Count - 1];
+            return Advance(ref node) == 1;
         }
 
         public static byte[] PeekRawLength(this LinkedListNode<byte> node, int length)
@@ -109,96 +116,122 @@ namespace CaveStoryModdingFramework.Editors
         public static byte[] ReadRawLength(ref LinkedListNode<byte> node, int length)
         {
             var buff = new List<byte>(length); //TODO investigate performance implications of Capacity
-            var n = node;
-            for(int i = 0; i < length; i++)
+            var advanceOk = true;
+            for(int i = 0; advanceOk && i < length; i++)
             {
-                if(Addvance(ref n, buff) == EscapedASCII.EscapeByte)
+                advanceOk = AddAndAdvance(ref node, buff);
+                if (buff[buff.Count - 1] == EscapedASCII.EscapeByte)
                 {
-                    var e = Addvance(ref n, buff);
-                    if(e == EscapedASCII.EscapeHexByte)
+                    advanceOk = AddAndAdvance(ref node, buff);
+                    if(buff[buff.Count - 1] == EscapedASCII.EscapeHexByte)
                     {
-                        Addvance(ref n, buff);
-                        Addvance(ref n, buff);
                         buff.Capacity += 3;
+                        AddAndAdvance(ref node, buff);
+                        AddAndAdvance(ref node, buff);
+                        
                     }
                 }
             }
-            node = n;
+            
             return buff.ToArray();
         }
+        
         /// <summary>
-        /// Try and read the next two nodes as a single byte value
+        /// 
         /// </summary>
         /// <param name="node"></param>
+        /// <param name="advanceOk"></param>
         /// <param name="output"></param>
-        /// <returns></returns>
-        public static bool TryReadEscapedByteDigits(ref LinkedListNode<byte> node, out byte output)
+        /// <returns>Whether the read succeeded</returns>
+        public static bool TryReadEscapedByteDigits(ref LinkedListNode<byte> node, out bool advanceOk, out byte output)
         {
-            output = 0xFF;
-            var b = new char[2]
+            output = 0;
+            byte b;
+            var hex = new char[2];
+
+            advanceOk = GetAndAdvance(ref node, out b);
+            //if there's only one byte here, quit out now
+            if (!advanceOk)
+                return false;
+            hex[0] = (char)b;
+            
+            advanceOk = GetAndAdvance(ref node, out b);
+            hex[1] = (char)b;
+            
+            if (Extensions.IsHexDigit(hex[0]) && Extensions.IsHexDigit(hex[1]))
             {
-                (char)Getvance(ref node),
-                (char)Getvance(ref node),
-            };
-            if (Extensions.IsHexDigit(b[0]) && Extensions.IsHexDigit(b[1]))
-            {
-                output = Convert.ToByte(new string(b), 16);
+                output = Convert.ToByte(new string(hex), 16);
                 return true;
             }
             else
             {
-                Backup(ref node, 2);
+                //backup twice if we actually ADVANCED two bytes, otherwise we only need to go back one
+                Backup(ref node, advanceOk ? 2 : 1);
+                advanceOk = true; //to get here we had to read 2 bytes, so it is ok to advance...
                 return false;
             }
         }
-        /// <summary>
-        /// Read one byte starting at the given node, converting escape sequences into their appropriate byte value
-        /// </summary>
-        /// <param name="node"></param>
-        /// <returns></returns>
-        public static byte ReadProcessingEscapes(ref LinkedListNode<byte> node)
+        public enum EscapeSequenceReadResult
         {
-            var output = Getvance(ref node);
-            if (output == EscapedASCII.EscapeByte)
+            Valid,
+            Fudged,
+            Invalid
+        }
+        /// <summary>
+        /// Read one byte starting at the given node, converting escape sequences into their appropriate byte value.
+        /// Invalid escape sequences are read byte-by-byte
+        /// </summary>
+        /// <param name="node">The node to read from</param>
+        /// <param name="value">The byte that was read</param>
+        /// <returns>Whether the byte that was read has more input after it</returns>
+        public static bool ReadProcessingEscapes(ref LinkedListNode<byte> node, out byte value)
+        {
+            bool advanceOk = GetAndAdvance(ref node, out value);
+            //all escape bytes require there to be a second character, so we can give up if there isn't
+            if (value == EscapedASCII.EscapeByte && advanceOk)
             {
-                var e = Getvance(ref node);
-                if (e == EscapedASCII.EscapeHexByte)
+                var escapeAdvanceOk = GetAndAdvance(ref node, out var escapeChar);
+                switch(escapeChar)
                 {
-                    if (TryReadEscapedByteDigits(ref node, out var b))
-                        output = b;
-                    else
-                        Backup(ref node, 1);
+                    //hex bytes require more data, so if there isn't any we're just going to backup
+                    case EscapedASCII.EscapeHexByte:
+                        if (escapeAdvanceOk)
+                        {
+                            if (TryReadEscapedByteDigits(ref node, out var dataAdvanceOk, out var data))
+                            {
+                                advanceOk = dataAdvanceOk;
+                                value = data;
+                            }
+                            else
+                                goto default;
+                        }
+                        break;
+                    //escaping the escape character doesn't require there to be any further input
+                    //so we preserve advanceOk and continue
+                    case EscapedASCII.EscapeByte:
+                        advanceOk = escapeAdvanceOk;
+                        break;
+                    //anything else, we go all the way back to the escape character and read that
+                    default:
+                        Backup(ref node);
+                        break;
                 }
-                else
-                    output = e;
             }
-            return output;
+            return advanceOk;
         }
 
         public static int PeekTSCNum(this LinkedListNode<byte> node, int length = 4)
         {
             int value = 0;
-            var n = node;
             for (int i = 0; i < length; i++)
             {
-                byte c = Getvance(ref n);
-                if(c == EscapedASCII.EscapeByte)
-                {
-                    switch(Getvance(ref n))
-                    {
-                        case EscapedASCII.EscapeHexByte:
-                            if (TryReadEscapedByteDigits(ref n, out var b))
-                                c = b;
-                            break;
-                        case EscapedASCII.EscapeByte:
-                            //oh, it's just the escape byte, continue...
-                            break;
-                        default:
-                            //invalid escape sequence, DON'T USE THESE TWO CHARACTERS
-                            continue;
-                    }
-                }
-                value += (c - 0x30) * (int)Math.Pow(10, length - 1 - i);
+                var nextOk = ReadProcessingEscapes(ref node, out var b);
+          
+                value += (b - 0x30) * (int)Math.Pow(10, length - 1 - i);
+                
+                //give up if there's no more input
+                if (!nextOk)
+                    break;
             }
             return value;
         }
@@ -245,14 +278,16 @@ namespace CaveStoryModdingFramework.Editors
             return null;
         }
 
-        public static List<byte> ReadUntilSequences(ref LinkedListNode<byte> node, params IList<byte>[] seqs)
+        public static List<byte> ReadUntilSequences(ref LinkedListNode<byte> node, out bool advanceOk, params IList<byte>[] seqs)
         {
             var buff = new List<byte>();
             var compares = new List<ComparisonInfo>(seqs.Length);
 
-            for(int i = 0; node != null; i++)
+            advanceOk = true;
+            for(int i = 0; advanceOk; i++)
             {
-                buff.Add(ReadProcessingEscapes(ref node));
+                advanceOk = ReadProcessingEscapes(ref node, out var b);
+                buff.Add(b);
 
                 var stopper = Compare(compares, buff, seqs);
                 if(stopper != null)
@@ -264,14 +299,15 @@ namespace CaveStoryModdingFramework.Editors
             }
             return buff;
         }
-        public static byte[] ReadUntilLengthOrSequences(ref LinkedListNode<byte> node, int length, params IList<byte>[] seqs)
+        public static byte[] ReadUntilLengthOrSequences(ref LinkedListNode<byte> node, out bool advanceOk, int length, params IList<byte>[] seqs)
         {
             var buff = new List<byte>(length);
             var compares = new List<ComparisonInfo>(seqs.Length);
-
-            for (int i = 0; compares.Count > 0 || i < length; i++)
+            advanceOk = true;
+            for (int i = 0; advanceOk && (compares.Count > 0 || i < length); i++)
             {
-                buff.Add(ReadProcessingEscapes(ref node));
+                advanceOk = ReadProcessingEscapes(ref node, out var b);
+                buff.Add(b);
 
                 var stopper = Compare(compares, buff, seqs);
                 if (stopper != null)
@@ -291,45 +327,63 @@ namespace CaveStoryModdingFramework.Editors
         /// <param name="buff"></param>
         /// <param name="seq"></param>
         /// <returns>Whether or not the sequence matched</returns>
-        public static bool CheckAndReadSequence(ref LinkedListNode<byte> node, out List<byte> buff, IList<byte> seq)
+        public static bool CheckAndReadSequence(ref LinkedListNode<byte> node, out bool advanceOk, out List<byte> buff, IList<byte> seq)
         {
+            if (seq.Count <= 0)
+                throw new ArgumentException("Must provide a sequence of more than 0 bytes", nameof(seq));
+            advanceOk = true;
             buff = new List<byte>(seq.Count);
             for(int i = 0; i < seq.Count; i++)
             {
-                buff.Add(ReadProcessingEscapes(ref node));
-                if(buff[i] != seq[i])
+                //get/add the next byte to the sequence
+                advanceOk = ReadProcessingEscapes(ref node, out var b);
+                buff.Add(b);
+                //if the next byte is incorrect
+                if(buff[i] != seq[i]
+                    //or we have no more input to read, and we haven't completed the sequence
+                    || (!advanceOk && i + 1 < seq.Count))
                 {
-                    Backup(ref node, i + 1);
+                    //need to back up once more if we advanced one more
+                    if (advanceOk)
+                        i++;
+                    Backup(ref node, i);
                     return false;
                 }
             }
             return true;
         }
 
-        public static bool StartsWith<T>(this IList<T> list1, IList<T> list2) where T : IComparable
+        
+        public static int Backup<T>(ref LinkedListNode<T> node)
         {
-            for (int i = 0; i < list2.Count; i++)
-                if (list1[i].CompareTo(list2[i]) != 0)
-                    return false;
-            return true;
+            var okToMove = node.Previous != null;
+            if (okToMove)
+                node = node.Previous!;
+            return okToMove ? 1 : 0;
         }
-
-        public static int Backup<T>(ref LinkedListNode<T>? n, int amount)
+        public static int Backup<T>(ref LinkedListNode<T> node, int amount)
         {
             int i;
-            for (i = 0; n != null && i < amount; i++)
-                n = n.Previous;
+            for (i = 0; node.Previous != null && i < amount; i++)
+                node = node.Previous;
             return i;
         }
-        public static int Advance<T>(ref LinkedListNode<T>? n, int amount)
+        public static int Advance<T>(ref LinkedListNode<T> node)
+        {
+            var okToMove = node.Next != null;
+            if (okToMove)
+                node = node.Next!;
+            return okToMove ? 1 : 0;
+        }
+        public static int Advance<T>(ref LinkedListNode<T> node, int amount)
         {
             int i;
-            for (i = 0; n != null && i < amount; i++)
-                n = n.Next;
+            for (i = 0; node.Next != null && i < amount; i++)
+                node = node.Next;
             return i;
         }
     }
-    #region TEMP
+    #region Tokens
     
     public enum TSCTokenValidity
     {
@@ -369,6 +423,16 @@ namespace CaveStoryModdingFramework.Editors
         }
     }
 
+    public enum TSCTextTypes
+    {
+        //text that could never be read
+        Comment,
+        //text that could be seen in a message box if one was open
+        Text,
+        //text that is in the firing line, but will be ignored
+        Ignore,
+    }
+
     public class TSCTextToken2 : TSCToken
     {
         public TSCTextTypes TextType { get; }
@@ -380,79 +444,6 @@ namespace CaveStoryModdingFramework.Editors
         }
     }
 
-
-
-
-    public interface ITSCToken
-    {
-        TSCTokenValidity Validity { get; set; }
-        Encoding Encoding { get; }
-        string Text { get; }
-        byte[] ToBytes();
-    }
-    public class TSCEventToken : ITSCToken
-    {
-        public TSCTokenValidity Validity { get; set; }
-        public int Value { get; }
-        public Encoding Encoding { get; }
-        public string Text { get; }
-
-        public TSCEventToken(IList<byte> text, int value, Encoding encoding, TSCTokenValidity validity)
-        {
-            Encoding = encoding;
-            Text = Encoding.GetString(text.ToArray());
-            Value = value;
-            Validity = validity;
-        }
-
-        public byte[] ToBytes()
-        {
-            return Encoding.GetBytes(Text);
-        }
-    }
-    public class TSCCommandToken : ITSCToken
-    {
-        public TSCTokenValidity Validity { get; set; }
-        Command Command { get; set; }
-        public Encoding Encoding { get; }
-        public string Text { get; private set; }
-
-        public byte[] ToBytes()
-        {
-            throw new NotImplementedException();
-        }
-    }
-    public enum TSCTextTypes
-    {
-        //text that could never be read
-        Comment,
-        //text that could be seen in a message box if one was open
-        Text,
-        //text that is in the firing line, but will be ignored
-        Ignore,
-    }
-    public class TSCTextToken : ITSCToken
-    {
-        public TSCTokenValidity Validity { get; set; }
-        public TSCTextTypes TextType { get; }
-        public Encoding Encoding { get; }
-        public string Text { get; }
-        public TSCTextToken(byte[] data, Encoding encoding, TSCTextTypes textType, TSCTokenValidity validity = TSCTokenValidity.Valid)
-        {
-            Encoding = encoding;
-            Text = Encoding.GetString(data);
-            TextType = textType;
-            Validity = validity;
-        }
-        public byte[] ToBytes()
-        {
-            return Encoding.GetBytes(Text);
-        }
-    }
-    public class TSCOverlapToken
-    {
-
-    }
     #endregion
     //tsc is loaded from bytes -> NORMALIZED bytes (basically escaped ascii converted back into bytes)
     //input comes in as string -> bytes
@@ -474,7 +465,7 @@ namespace CaveStoryModdingFramework.Editors
         /// <summary>
         /// Used for all TSC arguments (so that escaped bytes work)
         /// </summary>
-        Encoding ArgumentEncoding = EncodingOverrides.EscapedOneCharWideASCII;
+        Encoding ArgumentEncoding;
         /// <summary>
         /// Used for all TSC text/comments (so languages display properly)
         /// </summary>
@@ -485,12 +476,18 @@ namespace CaveStoryModdingFramework.Editors
         int currentLine = -1;
         public List<List<TSCToken>> Tokens { get; } = new List<List<TSCToken>>();
         
-        public TSCEditor(byte[] input, bool encrypted, Encoding? textEncoding = null)
+        public TSCEditor(Encoding? textEncoding = null)
         {
+            ArgumentEncoding = new EscapedASCII()
+            {
+                DoubleEscapeBytes = false
+            };
             if (textEncoding != null)
                 TextEncoding = EncodingOverrides.GetEncoding(textEncoding.CodePage);
-            Load(input, encrypted);
-            
+        }
+        public TSCEditor(byte[] input, bool encrypted, Encoding? textEncoding = null) : this(textEncoding)
+        {
+            Load(input, encrypted);            
             Parse(0);
         }
         void Load(string path, bool encrypted)
@@ -523,7 +520,7 @@ namespace CaveStoryModdingFramework.Editors
                     //add the rest if possible
                     eventData.AddRange(data.ReadUntilLengthOrSequences(EventLength - EventAdvance, EventStart, EventEnd));
 
-                    AppendToBuffer(ArgumentEncoding.GetString(eventData.ToArray()));
+                    AppendToBuffer(EncodingOverrides.EscapedOneCharWideASCII.GetString(eventData.ToArray()));
                 }
                 else if (data.CheckBytes(EventEnd))
                 {
@@ -602,29 +599,33 @@ namespace CaveStoryModdingFramework.Editors
             Queue<Argument> Arguments = new Queue<Argument>();
 
             ParserTextMode mode = ParserTextMode.OutsideEvent;
-            while (TSCoffset != null)
+            var advanceOk = TSCoffset != null;
+            while (advanceOk)
             {
                 List<byte> data;
                 var current = TSCoffset;
-                if (LocalExtensions.CheckAndReadSequence(ref TSCoffset, out data, EventStart))
+                if (LocalExtensions.CheckAndReadSequence(ref TSCoffset!, out advanceOk, out data, EventStart))
                 {
                     mode = ParserTextMode.EventDefinition;
                     //grab the value of this event
                     var num = TSCoffset.PeekTSCNum();
 
                     //these bytes are free
-                    for (int i = 0; i < EventAdvance; i++)
-                        data.Add(LocalExtensions.ReadProcessingEscapes(ref TSCoffset));
+                    for (int i = 0; advanceOk && i < EventAdvance; i++)
+                    {
+                        advanceOk = LocalExtensions.ReadProcessingEscapes(ref TSCoffset, out var b);
+                        data.Add(b);
+                    }
+                    if (advanceOk)
+                    {
+                        data.AddRange(LocalExtensions.ReadUntilLengthOrSequences(ref TSCoffset, out advanceOk,
+                            EventLength - EventAdvance, EventStart, EventEnd));
+                    }
                     
-                    //add the rest if possible
-                    data.AddRange(LocalExtensions.ReadUntilLengthOrSequences(ref TSCoffset, EventLength - EventAdvance,
-                        EventStart, EventEnd));
-
-                    //now we FOR SURE have a valid event token
                     Tokens[index].Add(new TSCEventToken2(current, data.Count, ArgumentEncoding, num,
                         data.Count == EventStart.Length + EventLength ? TSCTokenValidity.Valid : TSCTokenValidity.Warning));
                 }
-                else if (LocalExtensions.CheckAndReadSequence(ref TSCoffset, out data, EventEnd))
+                else if (LocalExtensions.CheckAndReadSequence(ref TSCoffset, out advanceOk, out data, EventEnd))
                 {
                     mode = ParserTextMode.EventBody;
                     Tokens[index++].Add(new TSCTextToken2(current, EventEnd.Length, TextEncoding, TSCTextTypes.Ignore));
@@ -632,18 +633,18 @@ namespace CaveStoryModdingFramework.Editors
                 }
                 //add command (in event)
                 else if (mode == ParserTextMode.EventBody
-                    && LocalExtensions.CheckAndReadSequence(ref TSCoffset, out data, CommandStart))
+                    && LocalExtensions.CheckAndReadSequence(ref TSCoffset, out advanceOk, out data, CommandStart))
                 {
                     //TODO TEMP
-                    data.AddRange(LocalExtensions.ReadRawLength(ref TSCoffset, 3));
+                    data.AddRange(LocalExtensions.ReadUntilLengthOrSequences(ref TSCoffset, out advanceOk, 3, EventStart));
                     Tokens[index].Add(new TSCTextToken2(current, data.Count, TextEncoding, TSCTextTypes.Text));
                 }
                 else if(mode == ParserTextMode.EventBody
-                    && LocalExtensions.CheckAndReadSequence(ref TSCoffset, out data, TextNewline))
+                    && LocalExtensions.CheckAndReadSequence(ref TSCoffset, out advanceOk, out data, TextNewline))
                 {
                     var expected = TextNewline.Length + TextNewLineAdvance;
 
-                    data.AddRange(LocalExtensions.ReadUntilLengthOrSequences(ref TSCoffset, TextNewLineAdvance, EventStart));
+                    data.AddRange(LocalExtensions.ReadUntilLengthOrSequences(ref TSCoffset, out advanceOk, TextNewLineAdvance, EventStart));
 
                     Tokens[index++].Add(new TSCTextToken2(current, data.Count, TextEncoding, TSCTextTypes.Ignore,
                         data.Count == expected ? TSCTokenValidity.Valid : TSCTokenValidity.Error));
@@ -655,15 +656,15 @@ namespace CaveStoryModdingFramework.Editors
                     switch (mode)
                     {
                         case ParserTextMode.EventDefinition:
-                            data = LocalExtensions.ReadUntilSequences(ref TSCoffset, EventStart, EventEnd);
+                            data = LocalExtensions.ReadUntilSequences(ref TSCoffset, out advanceOk, EventStart, EventEnd);
                             Tokens[index].Add(new TSCTextToken2(current, data.Count, TextEncoding, TSCTextTypes.Comment));
                             break;
                         case ParserTextMode.EventBody:
-                            data = LocalExtensions.ReadUntilSequences(ref TSCoffset, EventStart, TextNewline, CommandStart);
+                            data = LocalExtensions.ReadUntilSequences(ref TSCoffset, out advanceOk, EventStart, TextNewline, CommandStart);
                             Tokens[index].Add(new TSCTextToken2(current, data.Count, TextEncoding, TSCTextTypes.Text));
                             break;
                         case ParserTextMode.OutsideEvent:
-                            data = LocalExtensions.ReadUntilSequences(ref TSCoffset, EventStart);
+                            data = LocalExtensions.ReadUntilSequences(ref TSCoffset, out advanceOk, EventStart);
                             Tokens[index].Add(new TSCTextToken2(current, data.Count, TextEncoding, TSCTextTypes.Comment));
                             break;
                     }
