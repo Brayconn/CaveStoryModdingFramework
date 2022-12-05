@@ -26,8 +26,11 @@ namespace CaveStoryModdingFrameworkTests
             {
                 return new object[] { data, sequence, startPos, endPos, contains };
             }
-            yield return GenTest(new byte[] { 0 }, new byte[] { 1 }, 0, 0, false);
             yield return GenTest(new byte[] { 0 }, new byte[] { 0 }, 0, 1, true);
+            yield return GenTest(new byte[] { 0 }, new byte[] { 0 }, 1, 1, false);
+
+            yield return GenTest(new byte[] { 0 }, new byte[] { 1 }, 0, 0, false);
+            yield return GenTest(new byte[] { 0 }, new byte[] { 1 }, 1, 1, false);
 
             yield return GenTest(new byte[] { 0, 1, 2 }, new byte[] { 0, 1 }, 0, 2, true);
             yield return GenTest(new byte[] { 0, 1, 2 }, new byte[] { 0, 1 }, 1, 1, false);
