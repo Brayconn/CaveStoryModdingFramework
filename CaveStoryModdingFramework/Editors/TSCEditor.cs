@@ -716,13 +716,14 @@ namespace CaveStoryModdingFramework.Editors
         }
         public void Save(Stream stream)
         {
-            foreach (var line in Tokens)
-            {
-                foreach (var token in line)
+            var a = true;
+            var o = TSCbuffer.First;
+            if (o == null)
+                return;
+            while (a)
                 {
-                    var td = new[] { (byte)0 };
-                    stream.Write(td, 0, td.Length);
-                }
+                a = LocalExtensions.ReadProcessingEscapes(ref o, out var b);
+                stream.WriteByte(b);
             }
         }
 

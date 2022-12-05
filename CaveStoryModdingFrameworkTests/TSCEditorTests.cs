@@ -363,6 +363,18 @@ namespace CaveStoryModdingFrameworkTests
             checkTokens(editor.Tokens, tokens);
         }
 
+        //TODO this test can definitely be expanded
+        [Theory]
+        [MemberData(nameof(LoadAndParseOkTests))]
+        public void SaveOk(string data, string[] tokens, Encoding encoding)
+        {
+            var fd = encoding.GetBytes(data);
+            var editor = new TSCEditor(fd, false, encoding);
+            var ms = new MemoryStream();
+            editor.Save(ms);
+            Assert.Equal(fd, ms.ToArray());
+        }
+
         public static IEnumerable<object[]> LoadAndParseOkTests()
         {
             foreach (var test in LoadParseTests)
