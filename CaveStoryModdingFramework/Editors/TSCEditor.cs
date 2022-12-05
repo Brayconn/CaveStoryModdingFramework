@@ -10,34 +10,100 @@ namespace CaveStoryModdingFramework.Editors
 {
     public static class LocalExtensions
     {
+        #region Moving linked list nodes around
+        public static int Backup<T>(ref LinkedListNode<T> node)
+        {
+            var okToMove = node.Previous != null;
+            if (okToMove)
+                node = node.Previous!;
+            return okToMove ? 1 : 0;
+        }
+        public static int Backup<T>(ref LinkedListNode<T> node, int amount)
+        {
+            int i;
+            for (i = 0; node.Previous != null && i < amount; i++)
+                node = node.Previous;
+            return i;
+        }
+        public static int Advance<T>(ref LinkedListNode<T> node)
+        {
+            var okToMove = node.Next != null;
+            if (okToMove)
+                node = node.Next!;
+            return okToMove ? 1 : 0;
+        }
+        public static int Advance<T>(ref LinkedListNode<T> node, int amount)
+        {
+            int i;
+            for (i = 0; node.Next != null && i < amount; i++)
+                node = node.Next;
+            return i;
+        }
+        #endregion
+
+        #region COMPARISONS
+        class ComparisonInfo
+        {
+            public int Sequence;
+            public int Offset;
+            public int Progress;
+
+            public ComparisonInfo(int sequence, int offset)
+            {
+                Sequence = sequence;
+                Offset = offset;
+                Progress = 0;
+            }
+        }
+        static IList<byte>? Compare(List<ComparisonInfo> compares, List<byte> buff, IList<byte>[] seqs)
+        {
+            //find any sequences that COULD start at the latest byte added
+            for (int j = 0; j < seqs.Length; j++)
+                if (buff[buff.Count - 1] == seqs[j][0])
+                    compares.Add(new ComparisonInfo(j, buff.Count - 1));
+
+            //for all the active comparisons...
+            for (int j = 0; j < compares.Count; /*incremementing j is done later*/ )
+            {
+                //if the current byte is a mismatch, this comparison is a fail, remove it
+                if (buff[compares[j].Offset++] != seqs[compares[j].Sequence][compares[j].Progress++])
+                {
+                    compares.RemoveAt(j);
+                }
+                //otherwise, it matched, check if we're at the end
+                else if (compares[j].Progress == seqs[j].Count)
+                {
+                    return seqs[j];
+                }
+                //we weren't at the end, continue to the next compare...
+                else
+                {
+                    j++;
+                }
+            }
+            return null;
+        }
+
         public static byte[] ReadUntilLengthOrSequences(this Stream stream, int length, params IList<byte>[] seqs)
         {
             var buff = new List<byte>(length);
-            var indexes = new int[seqs.Length];
-            bool anyIndex = false;
-            for(int i = 0; anyIndex || i < length; i++)
+            var compares = new List<ComparisonInfo>(seqs.Length);
+
+            for(int i = 0; compares.Count > 0 || i < length; i++)
             {
-                anyIndex = false;
                 var bi = stream.ReadByte();
                 //stop at end of stream
                 if (bi == -1)
                     break;
                 //otherwise add it to the buffer
                 buff.Add((byte)bi);
-                for (int j = 0; j < indexes.Length; j++)
+
+                var stopper = Compare(compares, buff, seqs);
+                if(stopper != null)
                 {
-                    //then check if that byte contributes to the stop sequence
-                    if (buff[buff.Count - 1] == seqs[j][indexes[j]++])
-                        anyIndex = true;
-                    else
-                        indexes[j] = 0;
-                    //remove the end sequence and quit
-                    if (indexes[j] == seqs[j].Count)
-                    {
-                        buff.RemoveRange(buff.Count - seqs[j].Count, seqs[j].Count);
-                        stream.Position -= seqs[j].Count;
-                        return buff.ToArray();
-                    }
+                    buff.RemoveRange(buff.Count - stopper.Count, stopper.Count);
+                    stream.Position -= stopper.Count;
+                    return buff.ToArray();
                 }
             }
             return buff.ToArray();
@@ -45,39 +111,136 @@ namespace CaveStoryModdingFramework.Editors
         public static byte[] ReadUntilSequences(this Stream stream, params IList<byte>[] seqs)
         {
             var buff = new List<byte>();
-            var indexes = new int[seqs.Length];
-            while(stream.Position < stream.Length)
+            var compares = new List<ComparisonInfo>(seqs.Length);
+
+            while (stream.Position < stream.Length)
             {
                 var bi = stream.ReadByte();
                 if (bi == -1)
                     break;
-
                 buff.Add((byte)bi);
-                for (int j = 0; j < indexes.Length; j++)
+
+                var stopper = Compare(compares, buff, seqs);
+                if (stopper != null)
                 {
-                    //then check if that byte contributes to the stop sequence
-                    if (buff[buff.Count - 1] != seqs[j][indexes[j]++])
-                        indexes[j] = 0;
-                    //remove the end sequence and quit
-                    if (indexes[j] == seqs[j].Count)
-                    {
-                        buff.RemoveRange(buff.Count - seqs[j].Count, seqs[j].Count);
-                        stream.Position -= seqs[j].Count;
-                        return buff.ToArray();
-                    }
+                    buff.RemoveRange(buff.Count - stopper.Count, stopper.Count);
+                    stream.Position -= stopper.Count;
+                    return buff.ToArray();
                 }
             }
             return buff.ToArray();
         }
 
-        public static bool StartsWith<T>(this IList<T> list1, IList<T> list2) where T : IComparable
+        public static List<byte> ReadUntilSequences(ref LinkedListNode<byte> node, out bool advanceOk, params IList<byte>[] seqs)
         {
-            for (int i = 0; i < list2.Count; i++)
-                if (list1[i].CompareTo(list2[i]) != 0)
+            var buff = new List<byte>();
+            var compares = new List<ComparisonInfo>(seqs.Length);
+
+            advanceOk = true;
+            while (advanceOk)
+            {
+                advanceOk = ReadProcessingEscapes(ref node, out var b);
+                buff.Add(b);
+
+                var stopper = Compare(compares, buff, seqs);
+                if (stopper != null)
+                {
+                    buff.RemoveRange(buff.Count - stopper.Count, stopper.Count);
+                    Backup(ref node, stopper.Count);
+                    return buff;
+                }
+            }
+            return buff;
+        }
+        public static byte[] ReadUntilLengthOrSequences(ref LinkedListNode<byte> node, out bool advanceOk, int length, params IList<byte>[] seqs)
+        {
+            var buff = new List<byte>(length);
+            var compares = new List<ComparisonInfo>(seqs.Length);
+            advanceOk = true;
+            for (int i = 0; advanceOk && (compares.Count > 0 || i < length); i++)
+            {
+                advanceOk = ReadProcessingEscapes(ref node, out var b);
+                buff.Add(b);
+
+                var stopper = Compare(compares, buff, seqs);
+                if (stopper != null)
+                {
+                    buff.RemoveRange(buff.Count - stopper.Count, stopper.Count);
+                    Backup(ref node, stopper.Count);
+                    return buff.ToArray();
+                }
+            }
+            return buff.ToArray();
+        }
+        public static byte[] ReadRawUntilLengthOrSequences(ref LinkedListNode<byte> node, Encoding encoding, out bool advanceOk, int length, params IList<byte>[] seqs)
+        {
+            var buff = new List<byte>(length);
+            var compares = new List<ComparisonInfo>(seqs.Length);
+            advanceOk = true;
+            for (int i = 0; advanceOk && (compares.Count > 0 || i < length); i++)
+            {
+                advanceOk = ReadProcessingEscapes(ref node, out var b);
+                var rb = Encoding.ASCII.GetBytes(encoding.GetString(new[] { b }));
+                foreach (var _b in rb)
+                    buff.Add(_b);
+
+                var stopper = Compare(compares, buff, seqs);
+                if (stopper != null)
+                {
+                    buff.RemoveRange(buff.Count - stopper.Count, stopper.Count);
+                    Backup(ref node, stopper.Count);
+                    return buff.ToArray();
+                }
+            }
+            return buff.ToArray();
+        }
+
+        /// <summary>
+        /// Checks if the bytes at this location match the given sequence and outputs that sequence if true
+        /// </summary>
+        /// <param name="node"></param>
+        /// <param name="buff"></param>
+        /// <param name="seq"></param>
+        /// <returns>Whether or not the sequence matched</returns>
+        public static bool CheckAndReadSequence(ref LinkedListNode<byte> node, out bool advanceOk, out List<byte> buff, IList<byte> seq)
+        {
+            if (seq.Count <= 0)
+                throw new ArgumentException("Must provide a sequence of more than 0 bytes", nameof(seq));
+            advanceOk = true;
+            buff = new List<byte>(seq.Count);
+            for (int i = 0; i < seq.Count; i++)
+            {
+                //get/add the next byte to the sequence
+                advanceOk = ReadProcessingEscapes(ref node, out var b);
+                buff.Add(b);
+                //if the next byte is incorrect
+                if (buff[i] != seq[i]
+                    //or we have no more input to read, and we haven't completed the sequence
+                    || (!advanceOk && i + 1 < seq.Count))
+                {
+                    //need to back up once more if we advanced one more
+                    if (advanceOk)
+                        i++;
+                    Backup(ref node, i);
                     return false;
+                }
+            }
             return true;
         }
 
+        #endregion
+
+        #region basic reading
+        static bool GetAndAdvance<T>(ref LinkedListNode<T> node, out T value)
+        {
+            value = node.Value;
+            return Advance(ref node) == 1;
+        }
+        static bool AddAndAdvance<T>(ref LinkedListNode<T> node, IList<T> list)
+        {
+            list.Add(node.Value);
+            return Advance(ref node) == 1;
+        }
         public static T[] Read<T>(this LinkedListNode<T> node, int length)
         {
             var output = new T[length];
@@ -89,17 +252,25 @@ namespace CaveStoryModdingFramework.Editors
             }
             return output;
         }
+        #endregion
+
+        public static bool StartsWith<T>(this IList<T> list1, IList<T> list2) where T : IComparable
+        {
+            for (int i = 0; i < list2.Count; i++)
+                if (list1[i].CompareTo(list2[i]) != 0)
+                    return false;
+            return true;
+        }
+
+        public static void AddLast<T>(this LinkedList<T> list, IList<T> items)
+        {
+            for(int i = 0; i < items.Count; i++)
+                list.AddLast(items[i]);
+        }
+
         
-        static bool GetAndAdvance<T>(ref LinkedListNode<T> node, out T value)
-        {
-            value = node.Value;
-            return Advance(ref node) == 1;
-        }
-        static bool AddAndAdvance<T>(ref LinkedListNode<T> node, IList<T> list)
-        {
-            list.Add(node.Value);
-            return Advance(ref node) == 1;
-        }
+        
+        
 
         public static byte[] PeekRawLength(this LinkedListNode<byte> node, int length)
         {
@@ -135,7 +306,8 @@ namespace CaveStoryModdingFramework.Editors
             
             return buff.ToArray();
         }
-        
+
+        #region Escaped bytes
         /// <summary>
         /// 
         /// </summary>
@@ -170,12 +342,6 @@ namespace CaveStoryModdingFramework.Editors
                 advanceOk = true; //to get here we had to read 2 bytes, so it is ok to advance...
                 return false;
             }
-        }
-        public enum EscapeSequenceReadResult
-        {
-            Valid,
-            Fudged,
-            Invalid
         }
         /// <summary>
         /// Read one byte starting at the given node, converting escape sequences into their appropriate byte value.
@@ -219,6 +385,7 @@ namespace CaveStoryModdingFramework.Editors
             }
             return advanceOk;
         }
+        #endregion
 
         public static int PeekTSCNum(this LinkedListNode<byte> node, int length = 4)
         {
@@ -236,155 +403,10 @@ namespace CaveStoryModdingFramework.Editors
             return value;
         }
 
-        class ComparisonInfo
-        {
-            public int Sequence;
-            public int Offset;
-            public int Progress;
-
-            public ComparisonInfo(int sequence, int offset)
-            {
-                Sequence = sequence;
-                Offset = offset;
-                Progress = 0;
-            }
-        }
-        static IList<byte>? Compare(List<ComparisonInfo> compares, List<byte> buff, IList<byte>[] seqs)
-        {
-            //find any sequences that COULD start at the latest byte added
-            for (int j = 0; j < seqs.Length; j++)
-                if (buff[buff.Count - 1] == seqs[j][0])
-                    compares.Add(new ComparisonInfo(j, buff.Count - 1));
-
-            //for all the active comparisons...
-            for (int j = 0; j < compares.Count; /*incremementing j is done later*/ )
-            {
-                //if the current byte is a mismatch, this comparison is a fail, remove it
-                if (buff[compares[j].Offset++] != seqs[compares[j].Sequence][compares[j].Progress++])
-                {
-                    compares.RemoveAt(j);
-                }
-                //otherwise, it matched, check if we're at the end
-                else if (compares[j].Progress == seqs[j].Count)
-                {
-                    return seqs[j];
-                }
-                //we weren't at the end, continue to the next compare...
-                else
-                {
-                    j++;
-                }
-            }
-            return null;
-        }
-
-        public static List<byte> ReadUntilSequences(ref LinkedListNode<byte> node, out bool advanceOk, params IList<byte>[] seqs)
-        {
-            var buff = new List<byte>();
-            var compares = new List<ComparisonInfo>(seqs.Length);
-
-            advanceOk = true;
-            for(int i = 0; advanceOk; i++)
-            {
-                advanceOk = ReadProcessingEscapes(ref node, out var b);
-                buff.Add(b);
-
-                var stopper = Compare(compares, buff, seqs);
-                if(stopper != null)
-                {
-                    buff.RemoveRange(buff.Count - stopper.Count, stopper.Count);
-                    Backup(ref node, stopper.Count);
-                    return buff;
-                }
-            }
-            return buff;
-        }
-        public static byte[] ReadUntilLengthOrSequences(ref LinkedListNode<byte> node, out bool advanceOk, int length, params IList<byte>[] seqs)
-        {
-            var buff = new List<byte>(length);
-            var compares = new List<ComparisonInfo>(seqs.Length);
-            advanceOk = true;
-            for (int i = 0; advanceOk && (compares.Count > 0 || i < length); i++)
-            {
-                advanceOk = ReadProcessingEscapes(ref node, out var b);
-                buff.Add(b);
-
-                var stopper = Compare(compares, buff, seqs);
-                if (stopper != null)
-                {
-                    buff.RemoveRange(buff.Count - stopper.Count, stopper.Count);
-                    Backup(ref node, stopper.Count);
-                    return buff.ToArray();
-                }
-            }
-            return buff.ToArray();
-        }
-
-        /// <summary>
-        /// Checks if the bytes at this location match the given sequence and outputs that sequence if true
-        /// </summary>
-        /// <param name="node"></param>
-        /// <param name="buff"></param>
-        /// <param name="seq"></param>
-        /// <returns>Whether or not the sequence matched</returns>
-        public static bool CheckAndReadSequence(ref LinkedListNode<byte> node, out bool advanceOk, out List<byte> buff, IList<byte> seq)
-        {
-            if (seq.Count <= 0)
-                throw new ArgumentException("Must provide a sequence of more than 0 bytes", nameof(seq));
-            advanceOk = true;
-            buff = new List<byte>(seq.Count);
-            for(int i = 0; i < seq.Count; i++)
-            {
-                //get/add the next byte to the sequence
-                advanceOk = ReadProcessingEscapes(ref node, out var b);
-                buff.Add(b);
-                //if the next byte is incorrect
-                if(buff[i] != seq[i]
-                    //or we have no more input to read, and we haven't completed the sequence
-                    || (!advanceOk && i + 1 < seq.Count))
-                {
-                    //need to back up once more if we advanced one more
-                    if (advanceOk)
-                        i++;
-                    Backup(ref node, i);
-                    return false;
-                }
-            }
-            return true;
-        }
-
         
-        public static int Backup<T>(ref LinkedListNode<T> node)
-        {
-            var okToMove = node.Previous != null;
-            if (okToMove)
-                node = node.Previous!;
-            return okToMove ? 1 : 0;
-        }
-        public static int Backup<T>(ref LinkedListNode<T> node, int amount)
-        {
-            int i;
-            for (i = 0; node.Previous != null && i < amount; i++)
-                node = node.Previous;
-            return i;
-        }
-        public static int Advance<T>(ref LinkedListNode<T> node)
-        {
-            var okToMove = node.Next != null;
-            if (okToMove)
-                node = node.Next!;
-            return okToMove ? 1 : 0;
-        }
-        public static int Advance<T>(ref LinkedListNode<T> node, int amount)
-        {
-            int i;
-            for (i = 0; node.Next != null && i < amount; i++)
-                node = node.Next;
-            return i;
-        }
     }
     #region Tokens
-    
+
     public enum TSCTokenValidity
     {
         Valid,
@@ -562,7 +584,8 @@ namespace CaveStoryModdingFramework.Editors
                         default:
                             throw new InvalidOperationException("Invalid TSC state: " + mode);
                     }
-                    AppendToBuffer(TextEncoding.GetString(text));
+                    TSCbuffer.AddLast(text);
+                    //AppendToBuffer(TextEncoding.GetString(text));
                 }
             }
         }
@@ -623,7 +646,9 @@ namespace CaveStoryModdingFramework.Editors
                             EventLength - EventAdvance, EventStart, EventEnd));
                     }
                     
-                    Tokens[index].Add(new TSCEventToken2(current, data.Count, ArgumentEncoding, num,
+                    Tokens[index].Add(new TSCEventToken2(current,
+                        Encoding.ASCII.GetBytes(ArgumentEncoding.GetString(data.ToArray())).Length,
+                        ArgumentEncoding, num,
                         data.Count == EventStart.Length + EventLength ? TSCTokenValidity.Valid : TSCTokenValidity.Warning));
                 }
                 else if (LocalExtensions.CheckAndReadSequence(ref TSCoffset, out advanceOk, out data, EventEnd))
