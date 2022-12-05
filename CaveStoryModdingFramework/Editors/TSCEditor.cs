@@ -403,6 +403,15 @@ namespace CaveStoryModdingFramework.Editors
             return value;
         }
 
+        public static int GetTSCNum(this IList<byte> arr)
+        {
+            int value = 0;
+            for (int i = 0; i < arr.Count; i++)
+            {                
+                value += (arr[i] - 0x30) * (int)Math.Pow(10, arr.Count - 1 - i);
+            }
+            return value;
+        }
         
     }
     #region Tokens
@@ -466,6 +475,34 @@ namespace CaveStoryModdingFramework.Editors
         }
     }
 
+    public class TSCCommandToken : TSCToken
+    {
+        public Command? Command { get; }
+
+        public TSCCommandToken(LinkedListNode<byte> node, int length, Encoding encoding, Command? command, TSCTokenValidity validity = TSCTokenValidity.Valid)
+            : base(node, length, encoding, validity)
+        {
+            Command = command;
+        }
+    }
+
+    public class TSCArgumentToken : TSCToken
+    {
+        public Argument Argument { get; }
+
+        public int GetValue()
+        {
+            //TODO support custom arg types
+            return Content.PeekTSCNum();
+        }
+
+        public TSCArgumentToken(LinkedListNode<byte> node, int length, Encoding encoding, Argument argument, TSCTokenValidity validity = TSCTokenValidity.Valid)
+            : base(node, length, encoding, validity)
+        {
+            Argument = argument;
+        }
+    }
+
     #endregion
     //tsc is loaded from bytes -> NORMALIZED bytes (basically escaped ascii converted back into bytes)
     //input comes in as string -> bytes
@@ -493,12 +530,14 @@ namespace CaveStoryModdingFramework.Editors
         /// </summary>
         public Encoding TextEncoding = EncodingOverrides.EscapedASCII;
 
+        public List<Command> Commands = new List<Command>(CommandList.BaseCommands);
+
         LinkedList<byte> TSCbuffer = new LinkedList<byte>();
         LinkedListNode<byte>? TSCoffset = null;
         int currentLine = -1;
         public List<List<TSCToken>> Tokens { get; } = new List<List<TSCToken>>();
         
-        public TSCEditor(Encoding? textEncoding = null)
+        public TSCEditor(Encoding? textEncoding = null, List<Command>? commands = null)
         {
             ArgumentEncoding = new EscapedASCII()
             {
@@ -506,8 +545,12 @@ namespace CaveStoryModdingFramework.Editors
             };
             if (textEncoding != null)
                 TextEncoding = EncodingOverrides.GetEncoding(textEncoding.CodePage);
+
+            if (commands != null)
+                Commands = commands;
         }
-        public TSCEditor(byte[] input, bool encrypted, Encoding? textEncoding = null) : this(textEncoding)
+        public TSCEditor(byte[] input, bool encrypted, Encoding? textEncoding = null, List<Command>? commands = null)
+            : this(textEncoding, commands)
         {
             Load(input, encrypted);            
             Parse(0);
@@ -524,12 +567,20 @@ namespace CaveStoryModdingFramework.Editors
             if (encrypted)
                 Encryptor.DecryptInPlace(data);
 
+            //TODO very few command use repeats at all, but this system wouldn't support nested or local repeats
+            var argValues = new List<int>();
+            var storeArgValues = false;
+
+            var argumentQueue = new Queue<object>();
+
             ParserTextMode mode = ParserTextMode.OutsideEvent;
             while(data.Position < data.Length)
             {
                 if (data.CheckBytes(EventStart))
                 {
                     mode = ParserTextMode.EventDefinition;
+                    argValues.Clear();
+                    storeArgValues = false;
                     
                     //start working on the data
                     var eventData = new List<byte>(EventStart.Length + EventLength);
@@ -550,14 +601,62 @@ namespace CaveStoryModdingFramework.Editors
                     mode = ParserTextMode.EventBody;
                     AppendToBuffer(TextEncoding.GetString(EventEnd));
                 }
+                else if(argumentQueue.Count > 0)
+                {
+                    var dequeuedArg = argumentQueue.Dequeue();
+                    if(dequeuedArg is Argument arg)
+                    {
+                        List<byte> argData;
+                        if(arg.Length > 0)
+                        {
+                            argData = new List<byte>(arg.Length + arg.Separator.Length);
+                            argData.AddRange(data.ReadUntilLengthOrSequences(arg.Length, EventStart));
+                        }
+                        else
+                        {
+                            var sepBytes = ArgumentEncoding.GetBytes(arg.Separator);
+                            argData = new List<byte>();
+                            argData.AddRange(data.ReadUntilSequences(sepBytes, EventStart));                            
+                        }
+                        if (storeArgValues)
+                            argValues.Add(argData.GetTSCNum());
+                        if (!data.CheckBytes(EventStart) && argumentQueue.Count > 0)
+                            argData.AddRange(data.ReadUntilLengthOrSequences(arg.Separator.Length, EventStart));
+                        AppendToBuffer(EncodingOverrides.EscapedOneCharWideASCII.GetString(argData.ToArray()));
+                    }
+                    else if(dequeuedArg is RepeatStructure repeat)
+                    {
+                        for(int i = 0; i < argValues[repeat.Value]; i++)
+                        {
+                            foreach(var a in repeat.Arguments)
+                                argumentQueue.Enqueue(a);
+                        }
+                    }
+                    else
+                        throw new ArgumentException("Invalid TSC argument type! " + dequeuedArg.GetType(), nameof(dequeuedArg));
+                }
                 //add command (in event)
                 else if (mode == ParserTextMode.EventBody && data.CheckBytes(CommandStart))
                 {
-                    //TODO TEMP
                     var cmdData = new List<byte>();
                     cmdData.AddRange(CommandStart);
-                    cmdData.AddRange(data.ReadUntilLengthOrSequences(3));
-                    AppendToBuffer(TextEncoding.GetString(cmdData.ToArray()));
+                    foreach (var command in Commands)
+                    {
+                        var cmdNameBytes = ArgumentEncoding.GetBytes(command.ShortName);
+                        if (data.CheckBytes(cmdNameBytes))
+                        {
+                            cmdData.AddRange(cmdNameBytes);
+
+                            storeArgValues = command.UsesRepeats;
+
+                            foreach (var arg in command.Arguments)
+                            {
+                                argumentQueue.Enqueue(arg);
+                            }
+                            break;
+                        }
+                    }
+                    AppendToBuffer(ArgumentEncoding.GetString(cmdData.ToArray()));
                 }
                 else if (mode == ParserTextMode.EventBody && data.CheckBytes(TextNewline))
                 {
@@ -620,7 +719,7 @@ namespace CaveStoryModdingFramework.Editors
                 throw new IndexOutOfRangeException("Invalid line to parse!");
 
             TSCoffset = TSCbuffer.First;
-            Queue<Argument> Arguments = new Queue<Argument>();
+            var Arguments = new Queue<object>();
 
             ParserTextMode mode = ParserTextMode.OutsideEvent;
             var advanceOk = TSCoffset != null;
@@ -631,6 +730,7 @@ namespace CaveStoryModdingFramework.Editors
                 if (LocalExtensions.CheckAndReadSequence(ref TSCoffset!, out advanceOk, out data, EventStart))
                 {
                     mode = ParserTextMode.EventDefinition;
+                    Arguments.Clear();
                     //grab the value of this event
                     var num = TSCoffset.PeekTSCNum();
 
@@ -657,13 +757,70 @@ namespace CaveStoryModdingFramework.Editors
                     Tokens[index++].Add(new TSCTextToken2(current, EventEnd.Length, TextEncoding, TSCTextTypes.Ignore));
                     Tokens.Insert(index, new List<TSCToken>());
                 }
+                else if(Arguments.Count > 0)
+                {
+                    var dequeuedArg = Arguments.Dequeue();
+                    if(dequeuedArg is Argument arg)
+                    {
+                        List<byte> argData;
+                        if (arg.Length > 0)
+                        {
+                            argData = new List<byte>(arg.Length + arg.Separator.Length);
+                            argData.AddRange(LocalExtensions.ReadUntilLengthOrSequences(ref TSCoffset, out advanceOk, arg.Length, EventStart));
+                        }
+                        else
+                        {
+                            var sepBytes = ArgumentEncoding.GetBytes(arg.Separator);
+                            argData = new List<byte>();
+                            argData.AddRange(LocalExtensions.ReadUntilSequences(ref TSCoffset, out advanceOk, sepBytes, EventStart));
+                        }
+                        if (advanceOk && !LocalExtensions.CheckAndReadSequence(ref TSCoffset, out advanceOk, out data, EventStart))
+                            argData.AddRange(LocalExtensions.ReadUntilLengthOrSequences(ref TSCoffset, out advanceOk, arg.Separator.Length, EventStart));
+                        Tokens[index].Add(new TSCArgumentToken(current,
+                            EncodingOverrides.EscapedOneCharWideASCII.GetString(argData.ToArray()).Length,
+                            ArgumentEncoding, arg));
+                    }
+                    else if (dequeuedArg is RepeatStructure repeat)
+                    {
+                        int i = Tokens[index].Count - 1;
+                        while (!(Tokens[index][i] is TSCCommandToken))
+                            i--;
+                        i += 1 + repeat.Value;
+                        if (!(Tokens[index][i] is TSCArgumentToken))
+                            throw new ArgumentException("Something went wrong when getting the repeat index!");
+                        var repeatCount = ((TSCArgumentToken)Tokens[index][i]).GetValue();
+                        for (i = 0; i < repeatCount; i++)
+                        {
+                            foreach (var a in repeat.Arguments)
+                                Arguments.Enqueue(a);
+                        }
+                    }
+                    else
+                        throw new ArgumentException("Invalid TSC argument type! " + dequeuedArg.GetType(), nameof(dequeuedArg));
+                }
                 //add command (in event)
                 else if (mode == ParserTextMode.EventBody
                     && LocalExtensions.CheckAndReadSequence(ref TSCoffset, out advanceOk, out data, CommandStart))
                 {
-                    //TODO TEMP
-                    data.AddRange(LocalExtensions.ReadUntilLengthOrSequences(ref TSCoffset, out advanceOk, 3, EventStart));
-                    Tokens[index].Add(new TSCTextToken2(current, data.Count, TextEncoding, TSCTextTypes.Text));
+                    var cmdData = new List<byte>(data);
+                    Command? cmd = null;
+                    foreach (var command in Commands)
+                    {
+                        var cmdNameBytes = ArgumentEncoding.GetBytes(command.ShortName);
+                        if (LocalExtensions.CheckAndReadSequence(ref TSCoffset, out advanceOk, out data, cmdNameBytes))
+                        {
+                            cmdData.AddRange(cmdNameBytes);
+
+                            foreach (var arg in command.Arguments)
+                            {
+                                Arguments.Enqueue(arg);
+                            }
+                            break;
+                        }
+                    }
+                    Tokens[index].Add(new TSCCommandToken(current, cmdData.Count, ArgumentEncoding, cmd,
+                        //TODO togglable error state
+                        cmd != null ? TSCTokenValidity.Valid : TSCTokenValidity.Error));
                 }
                 else if(mode == ParserTextMode.EventBody
                     && LocalExtensions.CheckAndReadSequence(ref TSCoffset, out advanceOk, out data, TextNewline))
@@ -721,7 +878,7 @@ namespace CaveStoryModdingFramework.Editors
             if (o == null)
                 return;
             while (a)
-                {
+            {
                 a = LocalExtensions.ReadProcessingEscapes(ref o, out var b);
                 stream.WriteByte(b);
             }

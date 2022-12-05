@@ -1,5 +1,6 @@
 ﻿using CaveStoryModdingFramework;
 using CaveStoryModdingFramework.Editors;
+using CaveStoryModdingFramework.TSC;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -170,27 +171,20 @@ namespace CaveStoryModdingFrameworkTests
             /// </summary>
             public Encoding Encoding { get; }
 
+            /// <summary>
+            /// Custom command list
+            /// </summary>
+            public List<Command>? Commands { get; init; }
+
             public LoadParseTest(string input, params string[] tokens) : this(input, Encoding.ASCII.CodePage, tokens) { }
-            public LoadParseTest(string input, int codepage, params string[] tokens)
+            public LoadParseTest(string input, int codepage, params string[] tokens) : this(input, null, codepage, tokens) { }
+            public LoadParseTest(string input, byte[]? data, int codepage, params string[] tokens)
             {
                 Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
                 Encoding = Encoding.GetEncoding(codepage);
 
                 Input = input;
-                Data = Encoding.GetBytes(this.Input);
-                if (tokens.Length == 0)
-                    Tokens = new string[] { input };
-                else
-                    Tokens = tokens;
-            }
-            public LoadParseTest(string input, byte[] data, int codepage, params string[] tokens)
-            {
-                Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-                Encoding = Encoding.GetEncoding(codepage);
-                Encoding = Encoding.GetEncoding(Encoding.WebName);
-
-                Input = input;
-                Data = data;
+                Data = data ?? Encoding.GetBytes(Input);
                 if (tokens.Length == 0)
                     Tokens = new string[] { input };
                 else
@@ -210,6 +204,20 @@ namespace CaveStoryModdingFrameworkTests
             new LoadParseTest("#0200\r\n<MSGHello World!<END", "#0200", "\r", "\n", "<MSG", "Hello World!", "<END"),
             new LoadParseTest("#0200\r\n<KEY<MSGHello World!<NOD<END", "#0200", "\r", "\n", "<KEY", "<MSG", "Hello World!", "<NOD", "<END"),
 
+            new LoadParseTest("#0200\r\n<RNJ0001:0300", "#0200", "\r", "\n", "<RNJ", "0001:", "0300")
+            {
+                Commands = CommandList.BaseCommands.Concat(CommandList.OtherCommands.Where(x => x.UsesRepeats)).ToList()
+            },
+            new LoadParseTest("#0200\r\n<RNJ0003:0100:0200:0300", "#0200", "\r", "\n", "<RNJ", "0003:", "0100:", "0200:", "0300")
+            {
+                Commands = CommandList.BaseCommands.Concat(CommandList.OtherCommands.Where(x => x.UsesRepeats)).ToList()
+            },
+
+            new LoadParseTest("#0200\r\n<NAMNoxid$<MSGlol<NOD<END", "#0200", "\r", "\n", "<NAM", "Noxid$", "<MSG", "lol", "<NOD", "<END")
+            {
+                Commands = CommandList.BaseCommands.Concat(CommandList.OtherCommands.Where(x => x.ShortName == "NAM")).ToList()
+            },
+
             new LoadParseTest("#誰かの通信が聞こえる…<NOD<END",
                 Encoding.ASCII.GetBytes("#\\x92N\\x82\\xA9").Concat(new byte[]{
                     0x82, 0xCC, //の
@@ -223,7 +231,7 @@ namespace CaveStoryModdingFrameworkTests
                     0x81, 0x63  //…
                 }).Concat(Encoding.ASCII.GetBytes("<NOD<END")).ToArray(),
                 932,
-                "#\\x92N\\x82\\xA9", "の通信が聞こえる…<NOD<END")
+                "#\\x92N\\x82\\xA9", "の通信が聞こえる…<NOD<END"),
         };
 
         public static IEnumerable<object[]> LoadOkSharedTests()
@@ -311,20 +319,20 @@ namespace CaveStoryModdingFrameworkTests
         }
 
         
-        public static IEnumerable<object[]> ParseOkSharedTests()
+        public static IEnumerable<object?[]> ParseOkSharedTests()
         {
             foreach (var test in LoadParseTests)
-                yield return new object[] { test.Data, test.Tokens, test.Encoding };
+                yield return new object?[] { test.Data, test.Tokens, test.Encoding, test.Commands };
         }
-        public static IEnumerable<object[]> ParseOkTests()
+        public static IEnumerable<object?[]> ParseOkTests()
         {
-            object[] GenTest(string data, params string[] tokens)
+            object?[] GenTest(string data, params string[] tokens)
             {
                 var b = Encoding.ASCII.GetBytes(data);
                 if (tokens.Length == 0)
-                    return new object[] { b, new string[] { data }, Encoding.ASCII };
+                    return new object?[] { b, new string[] { data }, Encoding.ASCII, null };
                 else
-                    return new object[] { b, tokens, Encoding.ASCII };
+                    return new object?[] { b, tokens, Encoding.ASCII, null };
             }
 
             yield return GenTest("#\\");
@@ -355,9 +363,9 @@ namespace CaveStoryModdingFrameworkTests
         [Theory]
         [MemberData(nameof(ParseOkSharedTests))]
         [MemberData(nameof(ParseOkTests))]
-        public void ParseOk(byte[] data, string[] tokens, Encoding encoding)
+        public void ParseOk(byte[] data, string[] tokens, Encoding encoding, List<Command>? commands)
         {
-            var editor = new TSCEditor(encoding);
+            var editor = new TSCEditor(encoding, commands);
             TSCbuffer.SetValue(editor, new LinkedList<byte>(data));
             //AppendToBuffer.Invoke(editor, new object[] { data });
             
@@ -366,29 +374,18 @@ namespace CaveStoryModdingFrameworkTests
             checkTokens(editor.Tokens, tokens);
         }
 
-        //TODO this test can definitely be expanded
-        [Theory]
-        [MemberData(nameof(LoadAndParseOkTests))]
-        public void SaveOk(string data, string[] tokens, Encoding encoding)
-        {
-            var fd = encoding.GetBytes(data);
-            var editor = new TSCEditor(fd, false, encoding);
-            var ms = new MemoryStream();
-            editor.Save(ms);
-            Assert.Equal(fd, ms.ToArray());
-        }
 
-        public static IEnumerable<object[]> LoadAndParseOkTests()
+        public static IEnumerable<object?[]> LoadAndParseOkTests()
         {
             foreach (var test in LoadParseTests)
-                yield return new object[] { test.Input, test.Tokens, test.Encoding };
+                yield return new object?[] { test.Input, test.Tokens, test.Encoding, test.Commands };
         }
 
         [Theory]
         [MemberData(nameof(LoadAndParseOkTests))]
-        public void LoadAndParseOK(string data, string[] tokens, Encoding encoding)
+        public void LoadAndParseOK(string data, string[] tokens, Encoding encoding, List<Command>? commands)
         {
-            var editor = new TSCEditor(encoding.GetBytes(data), false, encoding);
+            var editor = new TSCEditor(encoding.GetBytes(data), false, encoding, commands);
             checkTokens(editor.Tokens, tokens);
         }
 
@@ -408,12 +405,29 @@ namespace CaveStoryModdingFrameworkTests
                     catch (Xunit.Sdk.EqualException ee)
                     {
                         Ok = false;
-                        output.WriteLine($"Token {i}/{tokens.Count}:\n" + ee.Message);
+                        output.WriteLine($"Token {i}/{expected.Length}:\n" + ee.Message);
                     }
                     i++;
                 }
             }
             Assert.True(Ok);
+        }
+
+        public static IEnumerable<object[]> SaveOkTests()
+        {
+            foreach (var test in LoadParseTests)
+                yield return new object[] { test.Input, test.Encoding };
+        }
+        
+        [Theory]
+        [MemberData(nameof(SaveOkTests))]
+        public void SaveOk(string data, Encoding encoding)
+        {
+            var fd = encoding.GetBytes(data);
+            var editor = new TSCEditor(fd, false, encoding);
+            var ms = new MemoryStream();
+            editor.Save(ms);
+            Assert.Equal(fd, ms.ToArray());
         }
     }
 }
