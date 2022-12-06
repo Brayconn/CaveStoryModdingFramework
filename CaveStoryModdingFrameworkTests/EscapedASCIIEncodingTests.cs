@@ -48,7 +48,14 @@ namespace CaveStoryModdingFrameworkTests
         public void CharMapDecodeOK(byte[] input, string expected)
         {
             var encoding = new EscapedASCII();
-            var output = encoding.GetString(input);
+            string? output;
+            if (input[0] == EscapedASCII.EscapeByte)
+            {
+                output = encoding.GetString(input);
+                Assert.Equal(expected + EscapedASCII.EscapeChar, output);
+                encoding.DoubleEscapeBytes = false;
+            }
+            output = encoding.GetString(input);
             Assert.Equal(expected, output);
         }
 
