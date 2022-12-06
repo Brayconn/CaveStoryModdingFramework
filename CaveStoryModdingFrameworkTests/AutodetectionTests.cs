@@ -68,9 +68,11 @@ namespace CaveStoryModdingFrameworkTests
 
                 foreach(var table in externalTables)
                 {
-                    static void CheckTableList<T>(List<T> actual, List<T> expected) where T : DataLocation
+                    void CheckTableList<T>(List<T> actual, List<T> expected) where T : DataLocation
                     {
-                        foreach(var a in actual)
+                        output.WriteLine($"Checking a list of {typeof(T).Name}\n" +
+                            $"Expecting {expected.Count} elements, have {actual.Count} elements");
+                        foreach (var a in actual)
                             Assert.Contains(a, expected);
                     }
                     CheckTableList(table.StageTables, expectedStageTables);
