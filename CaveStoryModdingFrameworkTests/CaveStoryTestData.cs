@@ -186,10 +186,14 @@ namespace CaveStoryModdingFrameworkTests
         {
             Prepare(testMethod);
 
+            bool foundTest = false;
             foreach (var test in CaveStoryTestData.EnumerateValidTests(SearchDir, true))
             {
+                foundTest = true;
                 yield return AssembleInput(test.Item1, test.Item2);
             }
+            if(!foundTest)
+                throw new ArgumentException("Didn't find any tests in the directory: " + SearchDir);
         }
     }
 

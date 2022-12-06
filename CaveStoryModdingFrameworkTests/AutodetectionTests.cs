@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -16,6 +17,22 @@ namespace CaveStoryModdingFrameworkTests
         public AutodetectionTests(ITestOutputHelper output)
         {
             this.output = output;
+        }
+
+        static MethodInfo Prepare = typeof(XMLDirectorySearcherAttribute).GetMethod(nameof(Prepare), BindingFlags.NonPublic | BindingFlags.Instance);
+        static FieldInfo SearchDir = typeof(XMLDirectorySearcherAttribute).GetField(nameof(SearchDir), BindingFlags.NonPublic | BindingFlags.Instance);
+        [Fact]
+        public void XMLDirectorySearcherWorks()
+        {
+            var x = new XMLDirectorySearcherAttribute("DATA", nameof(ProjectFile));
+            var m = typeof(AutodetectionTests).GetMethod(nameof(XMLDirectorySearcherWorks));
+            Prepare.Invoke(x, new object[] { m });
+            var sd = (string)SearchDir.GetValue(x);
+            int count = 0;
+            foreach (var test in CaveStoryTestData.EnumerateValidTests(sd, false))
+                count++;
+            output.WriteLine($"Found {count} tests in {sd}");
+            Assert.True(count > 0);
         }
 
         [Theory]
