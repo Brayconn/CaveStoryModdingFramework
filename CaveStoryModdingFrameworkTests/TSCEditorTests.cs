@@ -136,6 +136,11 @@ namespace CaveStoryModdingFrameworkTests
 
             yield return GenLinkedListTest("\\x11", 0, 3, false, 0x11);
             yield return GenLinkedListTest("\\xFA", 0, 3, false, 0xFA);
+
+            yield return GenLinkedListTest("\\x92N\\x82\\xA9", 0, 4, true, 0x92);
+            yield return GenLinkedListTest("\\x92N\\x82\\xA9", 4, 5, true, (byte)'N');
+            yield return GenLinkedListTest("\\x92N\\x82\\xA9", 5, 9, true, 0x82);
+            yield return GenLinkedListTest("\\x92N\\x82\\xA9", 9,12, false, 0xA9);
         }
 
         [Theory]
