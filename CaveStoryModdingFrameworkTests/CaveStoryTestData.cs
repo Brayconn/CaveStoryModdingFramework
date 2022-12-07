@@ -68,6 +68,12 @@ namespace CaveStoryModdingFrameworkTests
         //How to download this item
         public DownloadMethods DownloadMethod { get; set; }
 
+        /// <summary>
+        /// Enumerate all tests in the given directory
+        /// </summary>
+        /// <param name="path">The directory to search</param>
+        /// <param name="download">Whether or not to download the test data if a test with no directory is found</param>
+        /// <returns>The tests in the given directory</returns>
         public static IEnumerable<CaveStoryTestData> EnumerateTests(string path, bool download = false)
         {
             var cstd = new XmlSerializer(typeof(CaveStoryTestData));
@@ -106,23 +112,37 @@ namespace CaveStoryModdingFrameworkTests
                     }
                     else continue;
                 }
-
+                
                 yield return test;
             }
         }
+        /// <summary>
+        /// Enumerate tests in the given directory that have both a *.cav file and a non-empty directory associated with them
+        /// </summary>
+        /// <param name="path">The directory to search</param>
+        /// <param name="download">Whether or not to download the test data if a test with no directory is found</param>
+        /// <returns>The tests in the given directory</returns>
         public static IEnumerable<Tuple<CaveStoryTestData, ProjectFile>> EnumerateValidTests(string path, bool download = false)
         {
             foreach(var test in EnumerateTests(path, download))
             {
-                ProjectFile expected;
-                var expectedPath = Path.Combine(path, Path.ChangeExtension(test.Name, ProjectFile.Extension));
-                if (!File.Exists(expectedPath))
+                //Check for a non empty directory...
+                var expectedDirectory = Path.Combine(path, test.Name);
+                var dirInf = new DirectoryInfo(expectedDirectory);
+                //the first condition should be impossible given what EnumerateTests() does
+                if (!dirInf.Exists || dirInf.GetFileSystemInfos().Length <= 0)
                     continue;
-                using (var f = new FileStream(expectedPath, FileMode.Open, FileAccess.Read))
+                
+                //...and a valid project file
+                ProjectFile expected;
+                var expectedProject = Path.Combine(path, Path.ChangeExtension(test.Name, ProjectFile.Extension));
+                if (!File.Exists(expectedProject))
+                    continue;
+                using (var f = new FileStream(expectedProject, FileMode.Open, FileAccess.Read))
                 {
                     try
                     {
-                        expected = ProjectFile.Load(expectedPath);
+                        expected = ProjectFile.Load(expectedProject);
                     }
                     catch
                     {
