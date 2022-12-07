@@ -206,6 +206,8 @@ namespace CaveStoryModdingFramework.Editors
         {
             if (seq.Count <= 0)
                 throw new ArgumentException("Must provide a sequence of more than 0 bytes", nameof(seq));
+            var start = node;
+            var startAdv = start.Next != null;
             advanceOk = true;
             buff = new List<byte>(seq.Count);
             for (int i = 0; i < seq.Count; i++)
@@ -219,9 +221,8 @@ namespace CaveStoryModdingFramework.Editors
                     || (!advanceOk && i + 1 < seq.Count))
                 {
                     //need to back up once more if we advanced one more
-                    if (advanceOk)
-                        i++;
-                    Backup(ref node, i);
+                    node = start;
+                    advanceOk = startAdv;
                     return false;
                 }
             }

@@ -1,6 +1,7 @@
 ﻿using CaveStoryModdingFramework;
 using CaveStoryModdingFramework.Editors;
 using CaveStoryModdingFramework.TSC;
+using CaveStoryModdingFramework.Utilities;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -155,6 +156,71 @@ namespace CaveStoryModdingFrameworkTests
             Assert.Equal(advanceOk, a);
             //read the right value?
             Assert.Equal(value, b);
+        }
+
+        public static IEnumerable<object[]> CanCheckAndReadTests()
+        {
+            static object[] GenLinkedListTest(string data, int start, int end, bool advance, bool result, params byte[] seq)
+            {
+                var ll = new LinkedList<byte>(Encoding.ASCII.GetBytes(data));
+                var s = ll.First;
+                for (int i = 0; i < start; i++)
+                    s = s.Next;
+                var e = ll.First;
+                for (int i = 0; i < end; i++)
+                    e = e.Next;
+                return new object[] { s, e, advance, result, seq };
+            }
+            yield return GenLinkedListTest("#", 0, 0, false, false, (byte)'<');
+            yield return GenLinkedListTest("#", 0, 0, false, true, (byte)'#');
+            yield return GenLinkedListTest("\\x23", 0, 3, false, true, (byte)'#');
+
+            yield return GenLinkedListTest("#0200\r\n<END", 0, 0, true, false, (byte)'<');
+            yield return GenLinkedListTest("#0200\r\n<END", 0, 1, true, true, (byte)'#');
+
+            yield return GenLinkedListTest("\\x92N\\x82\\xA9", 0, 0, true, false, (byte)'#');
+            yield return GenLinkedListTest("\\x92N\\x82\\xA9", 4, 4, true, false, (byte)'#');
+            yield return GenLinkedListTest("\\x92N\\x82\\xA9", 5, 5, true, false, (byte)'#');
+            yield return GenLinkedListTest("\\x92N\\x82\\xA9", 9, 9, true, false, (byte)'#');
+        }
+
+        [Theory]
+        [MemberData(nameof(CanCheckAndReadTests))]
+        public void CanCheckAndRead(LinkedListNode<byte> start, LinkedListNode<byte> end, bool advanceOk, bool expected, byte[] seq)
+        {
+            bool r = LocalExtensions.CheckAndReadSequence(ref start, out var a, out var d, seq);
+
+            //end on the right spot?
+            int actualEndIndex = 0;
+            while (start.Previous != null)
+            {
+                actualEndIndex++;
+                start = start.Previous;
+            } 
+            int expectedEndIndex = 0;
+            while (end.Previous != null)
+            {
+                expectedEndIndex++;
+                end = end.Previous;
+            }
+
+            var enc = new EscapedASCII()
+            {
+                DoubleEscapeBytes = false,
+                ForceOneCharWidth = true
+            };
+            output.WriteLine(new string(' ', expectedEndIndex) + "v (expected)");
+            output.WriteLine(enc.GetString(start.List.ToArray()));
+            output.WriteLine(new string(' ', actualEndIndex) + "^ (actual)");
+            Assert.Equal(expectedEndIndex, actualEndIndex);
+            
+            //recognize end of input?
+            Assert.Equal(advanceOk, a);
+            //found the sequence?
+            Assert.Equal(expected, r);
+            //read the right value?
+            if (expected)
+                Assert.Equal(seq, d);
         }
 
         class LoadParseTest
