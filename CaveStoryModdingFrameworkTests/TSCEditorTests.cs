@@ -275,6 +275,82 @@ namespace CaveStoryModdingFrameworkTests
             new LoadParseTest("#0200\r\n<MSGHello World!<END", "#0200", "\r", "\n", "<MSG", "Hello World!", "<END"),
             new LoadParseTest("#0200\r\n<KEY<MSGHello World!<NOD<END", "#0200", "\r", "\n", "<KEY", "<MSG", "Hello World!", "<NOD", "<END"),
 
+            new LoadParseTest(
+                "#0300\r\n" +
+                "<KEY<FLJ0300:0301<FL+0300\r\n" +
+                "<MSGYou open the chest...<NOD<CLR\r\n" +
+                "<AM+0001:0050Got the first gun!<NOD<END\r\n\r\n" +
+                "#0301\r\n" +
+                "<KEY<MSGEmpty...<NOD<END",
+
+                "#0300","\r","\n",
+                "<KEY","<FLJ","0300:","0301","<FL+","0300","\r\n",
+                "<MSG","You open the chest...","<NOD","<CLR","\r\n",
+                "<AM+","0001:","0050","Got the first gun!","<NOD","<END","\r\n","\r\n",
+                "#0301","\r","\n",
+                "<KEY","<MSG","Empty...","<NOD","<END"),
+
+            new LoadParseTest(
+                "#0200 #0201\r\n" +
+                "<MSGTwo events<NOD<END",
+
+                "#0200"," ","#0201","\r","\n",
+                "<MSG","Two events","<NOD","<END"),
+
+            new LoadParseTest(
+                "#0200 This is effectively #0201 a few comments\r\n" +
+                "<KEY<MSGTwo commented events<NOD<END",
+
+                "#0200"," This is effectively ","#0201"," a few comments\r","\n",
+                "<KEY","<MSG","Two commented events","<NOD","<END"),
+
+            new LoadParseTest(
+                "#04\n0" +
+                "<MSGInterrupted event<NOD<END",
+
+                "#04","\n",
+                "0","<MSG","Interrupted event","<NOD","<END"),
+
+            new LoadParseTest(
+                "#022#0208\r\n" +
+                "<MSGHello from events 207 and 208!<NOD<END",
+
+                "#022","#0208","\r","\n",
+                "<MSG","Hello from events 207 and 208!","<NOD","<END"),
+
+            new LoadParseTest(
+                "#04#0271\r\n" +
+                "<MSGHello from events 270 and 271!<NOD<END",
+
+                "#04","#0271","\r","\n",
+                "<MSG","Hello from events 270 and 271!","<NOD","<END"),
+
+            new LoadParseTest(
+                "#2#7071\r\n" +
+                "<MSGHello from events 770 and 771!<NOD<END",
+
+                "#2","#7071","\r","\n",
+                "<MSG","Hello from events 770 and 771!","<NOD","<END"),
+
+            new LoadParseTest(
+                "##$000\r\n" +
+                "<MSGFake Overlap<NOD<END",
+
+                "##$00","0\r","\n",
+                "<MSG","Fake Overlap","<NOD","<END"),
+
+            
+            new LoadParseTest(
+                "#\n" +
+                "<MSGUh oh,<NOD\r\n" +
+                "Unexpected comment<NOD<END",
+                Encoding.ASCII.GetBytes("#\\x0A" +
+                "<MSGUh oh,<NOD\r\n" +
+                "Unexpected comment<NOD<END"), Encoding.ASCII.CodePage,
+                "#\\x0A<MS", "GUh oh,<NOD\r","\n",
+                "Unexpected comment","<NOD","<END"),
+            
+
             new LoadParseTest("#0200\r\n<RNJ0001:0300", "#0200", "\r", "\n", "<RNJ", "0001:", "0300")
             {
                 Commands = CommandList.BaseCommands.Concat(CommandList.OtherCommands.Where(x => x.UsesRepeats)).ToList()
@@ -303,6 +379,24 @@ namespace CaveStoryModdingFrameworkTests
                 }).Concat(Encoding.ASCII.GetBytes("<NOD<END")).ToArray(),
                 932,
                 "#\\x92N\\x82\\xA9", "の通信が聞こえる…<NOD<END"),
+
+            new LoadParseTest(
+                "#0200\r\n" +
+                "<MSG<ML+誰かの通信が聞こえる…<NOD<END",
+                Encoding.ASCII.GetBytes("#0200\r\n<MSG<ML+\\x92N\\x82\\xA9").Concat(new byte[]{
+                    0x82, 0xCC, //の
+                    0x92, 0xCA, //通
+                    0x90, 0x4D, //信
+                    0x82, 0xAA, //が
+                    0x95, 0xB7, //聞
+                    0x82, 0xB1, //こ
+                    0x82, 0xA6, //え
+                    0x82, 0xE9, //る
+                    0x81, 0x63  //…
+                }).Concat(Encoding.ASCII.GetBytes("<NOD<END")).ToArray(),
+                932,
+                "#0200","\r","\n",
+                "<MSG","<ML+","\\x92N\\x82\\xA9","の通信が聞こえる…","<NOD","<END")
         };
 
         public static IEnumerable<object[]> LoadOkSharedTests()
@@ -311,77 +405,10 @@ namespace CaveStoryModdingFrameworkTests
                 yield return new object[] { test.Encoding.GetBytes(test.Input), test.Data, test.Encoding };
         }
 
-        public static IEnumerable<object[]> LoadOkTests()
-        {
-            object[] GenerateTest(string data, string expected = null, Encoding encoding = null)
-            {
-                encoding ??= Encoding.ASCII;
-                var b = encoding.GetBytes(data);
-                var e = expected != null ? encoding.GetBytes(expected) : b;
-                return new object[] { b, e, encoding };
-            }
-
-            //*
-            yield return GenerateTest(
-                "#0300\r\n" +
-                "<KEY<FLJ0300:0301<FL+0300\r\n" +
-                "<MSGYou open the chest...<NOD<CLR\r\n" +
-                "<AM+0001:0050Got the first gun!<NOD<END\r\n\r\n" +
-                "#0301\r\n" +
-                "<KEY<MSGEmpty...<NOD<END");
-
-            /*
-            yield return GenerateTest(
-                "#0200\r\n" +
-                "<MSG<ML+誰かの通信が聞こえる…<NOD<END",
-                "#0200\r\n" +
-                "<MSG<ML+\\x92N\\x82\\xA9の通信が聞こえる…<NOD<END",
-                Encoding.GetEncoding(932));
-            */
-
-
-            yield return GenerateTest(
-                "#0200 #0201\r\n" +
-                "<MSGTwo events<NOD<END"
-                );
-            yield return GenerateTest(
-                "#0200 This is effectively #0201 a few comments\r\n" +
-                "<KEY<MSGTwo commented events<NOD<END"
-                );
-
-            yield return GenerateTest("#04\n0" +
-                "<MSGInterrupted event<NOD<END"
-                );
-
-            yield return GenerateTest("#022#0208\r\n" +
-                "<MSGHello from events 207 and 208!<NOD<END");
-            yield return GenerateTest(
-                "#04#0271\r\n" +
-                "<MSGHello from events 270 and 271!<NOD<END");
-            yield return GenerateTest(
-                "#2#7071\r\n" +
-                "<MSGHello from events 770 and 771!<NOD<END"
-                );
-            yield return GenerateTest("##$000\r\n" +
-                "<MSGFake Overlap<NOD<END");
-
-            yield return GenerateTest(
-                "#\n" +
-                "<MSGUh oh,<NOD\r\n" +
-                "Unexpected comment<NOD<END",
-
-                "#\\x0A<MS" +
-                "GUh oh,<NOD\r\n" +
-                "Unexpected comment<NOD<END"
-                );
-            //*/
-        }
-
         static FieldInfo TSCbuffer = typeof(TSCEditor).GetField("TSCbuffer", BindingFlags.NonPublic | BindingFlags.Instance);
 
         [Theory]
         [MemberData(nameof(LoadOkSharedTests))]
-        [MemberData(nameof(LoadOkTests))]
         public void LoadOk(byte[] data, byte[] expected, Encoding encoding)
         {
             TSCEditor editor = new TSCEditor(data, false, encoding);
