@@ -811,6 +811,7 @@ namespace CaveStoryModdingFramework.Editors
                         var cmdNameBytes = ArgumentEncoding.GetBytes(command.ShortName);
                         if (LocalExtensions.CheckAndReadSequence(ref TSCoffset, out advanceOk, out data, cmdNameBytes))
                         {
+                            cmd = command;
                             cmdData.AddRange(cmdNameBytes);
 
                             foreach (var arg in command.Arguments)
