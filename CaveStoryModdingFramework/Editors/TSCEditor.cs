@@ -620,7 +620,7 @@ namespace CaveStoryModdingFramework.Editors
                         }
                         if (storeArgValues)
                             argValues.Add(argData.GetTSCNum());
-                        if (!data.CheckBytes(EventStart) && argumentQueue.Count > 0)
+                        if (arg.Length <= 0 || argumentQueue.Count > 0)
                             argData.AddRange(data.ReadUntilLengthOrSequences(arg.Separator.Length, EventStart));
                         AppendToBuffer(EncodingOverrides.EscapedOneCharWideASCII.GetString(argData.ToArray()));
                     }
@@ -774,7 +774,7 @@ namespace CaveStoryModdingFramework.Editors
                             argData = new List<byte>();
                             argData.AddRange(LocalExtensions.ReadUntilSequences(ref TSCoffset, out advanceOk, sepBytes, EventStart));
                         }
-                        if (advanceOk && !LocalExtensions.CheckAndReadSequence(ref TSCoffset, out advanceOk, out data, EventStart))
+                        if (advanceOk && (arg.Length <= 0 || Arguments.Count > 0))
                             argData.AddRange(LocalExtensions.ReadUntilLengthOrSequences(ref TSCoffset, out advanceOk, arg.Separator.Length, EventStart));
                         Tokens[index].Add(new TSCArgumentToken(current,
                             EncodingOverrides.EscapedOneCharWideASCII.GetString(argData.ToArray()).Length,
