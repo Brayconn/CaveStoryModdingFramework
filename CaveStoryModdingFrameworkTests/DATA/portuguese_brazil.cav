@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ProjectFile xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <BaseDataPath>portuguese_brazil/Cave Story pt-BR v1.0/data</BaseDataPath>
+  <EXEPath>portuguese_brazil/Cave Story pt-BR v1.0/Doukutsu.exe</EXEPath>
+  <StageTables>
+    <Item Key="Internal 1">
+      <Filename>../Doukutsu.exe</Filename>
+      <DataLocationType>Internal</DataLocationType>
+      <Offset>0</Offset>
+      <SectionName>.csmap</SectionName>
+      <FixedSize>false</FixedSize>
+      <MaximumSize>0</MaximumSize>
+      <StageTableFormat>normal</StageTableFormat>
+      <StageCount>0</StageCount>
+      <Settings>
+        <BackgroundTypeType>System.Int32</BackgroundTypeType>
+        <BossNumberType>System.SByte</BossNumberType>
+        <FilenameEncoding>us-ascii</FilenameEncoding>
+        <MapNameEncoding>us-ascii</MapNameEncoding>
+        <JapaneseNameEncoding>shift_jis</JapaneseNameEncoding>
+        <TilesetNameBuffer>32</TilesetNameBuffer>
+        <FilenameBuffer>32</FilenameBuffer>
+        <BackgroundNameBuffer>32</BackgroundNameBuffer>
+        <Spritesheet1Buffer>32</Spritesheet1Buffer>
+        <Spritesheet2Buffer>32</Spritesheet2Buffer>
+        <JapaneseNameBuffer>0</JapaneseNameBuffer>
+        <MapNameBuffer>32</MapNameBuffer>
+        <Padding>3</Padding>
+      </Settings>
+      <References>
+        <TilesetReferences>
+          <long>134191</long>
+          <long>134259</long>
+        </TilesetReferences>
+        <FilenameReferences>
+          <long>134325</long>
+          <long>134390</long>
+          <long>134456</long>
+        </FilenameReferences>
+        <BackgroundTypeReferences>
+          <long>134558</long>
+        </BackgroundTypeReferences>
+        <BackgroundNameReferences>
+          <long>134522</long>
+        </BackgroundNameReferences>
+        <Spritesheet1References>
+          <long>134617</long>
+        </Spritesheet1References>
+        <Spritesheet2References>
+          <long>134684</long>
+        </Spritesheet2References>
+        <BossNumberReferences>
+          <long>134824</long>
+        </BossNumberReferences>
+        <JapaneseNameReferences />
+        <MapNameReferences>
+          <long>134762</long>
+        </MapNameReferences>
+      </References>
+    </Item>
+  </StageTables>
+  <NPCTables>
+    <Item Key="npc.tbl">
+      <Filename>npc.tbl</Filename>
+      <DataLocationType>External</DataLocationType>
+      <Offset>0</Offset>
+      <FixedSize>false</FixedSize>
+      <MaximumSize>0</MaximumSize>
+      <NpcTableFormat>ByType</NpcTableFormat>
+      <NpcCount>0</NpcCount>
+    </Item>
+  </NPCTables>
+  <BulletTables />
+  <ArmsLevelTables />
+  <ImageTransparentColor />
+  <ImagesCopyrighted>false</ImagesCopyrighted>
+  <ImageCopyrightText>(C)Pixel</ImageCopyrightText>
+  <BackgroundPrefix>bk</BackgroundPrefix>
+  <TilesetPrefix>Prt</TilesetPrefix>
+  <SpritesheetPrefix>Npc</SpritesheetPrefix>
+  <ImageExtension>.pbm</ImageExtension>
+  <MapExtension>.pxm</MapExtension>
+  <EntityExtension>.pxe</EntityExtension>
+  <AttributeExtension>.pxa</AttributeExtension>
+  <ScriptExtension>.tsc</ScriptExtension>
+  <UseScriptSource>false</UseScriptSource>
+  <ScriptsEncrypted>true</ScriptsEncrypted>
+  <ScriptKeyLocation>2</ScriptKeyLocation>
+  <DefaultEncryptionKey>7</DefaultEncryptionKey>
+  <ScreenWidth>320</ScreenWidth>
+  <ScreenHeight>240</ScreenHeight>
+  <SelectedLayoutIndex>0</SelectedLayoutIndex>
+  <Layouts>
+    <AssetLayout>
+      <DataPaths>
+        <string>../data</string>
+      </DataPaths>
+      <StagePaths>
+        <string>Stage</string>
+      </StagePaths>
+      <NpcPaths>
+        <string>Npc</string>
+      </NpcPaths>
+      <StageTables>
+        <TableLoadInfo Write="true">Internal 1</TableLoadInfo>
+      </StageTables>
+      <NpcTables>
+        <TableLoadInfo Write="true">npc.tbl</TableLoadInfo>
+      </NpcTables>
+      <BulletTables />
+      <ArmsLevelTables />
+      <TileSize>16</TileSize>
+      <EntityOverrides />
+    </AssetLayout>
+  </Layouts>
+</ProjectFile>

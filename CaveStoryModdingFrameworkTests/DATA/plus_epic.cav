@@ -1,0 +1,709 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ProjectFile xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <BaseDataPath>plus_epic/data</BaseDataPath>
+  <EXEPath>plus_epic/CaveStory+.exe</EXEPath>
+  <StageTables>
+    <Item Key="Internal 1">
+      <Filename>../CaveStory+.exe</Filename>
+      <DataLocationType>Internal</DataLocationType>
+      <Offset>787752</Offset>
+      <SectionName />
+      <FixedSize>true</FixedSize>
+      <MaximumSize>19000</MaximumSize>
+      <StageTableFormat>normal</StageTableFormat>
+      <StageCount>99</StageCount>
+      <Settings>
+        <BackgroundTypeType>System.Int32</BackgroundTypeType>
+        <BossNumberType>System.SByte</BossNumberType>
+        <FilenameEncoding>us-ascii</FilenameEncoding>
+        <MapNameEncoding>us-ascii</MapNameEncoding>
+        <JapaneseNameEncoding>shift_jis</JapaneseNameEncoding>
+        <TilesetNameBuffer>32</TilesetNameBuffer>
+        <FilenameBuffer>32</FilenameBuffer>
+        <BackgroundNameBuffer>32</BackgroundNameBuffer>
+        <Spritesheet1Buffer>32</Spritesheet1Buffer>
+        <Spritesheet2Buffer>32</Spritesheet2Buffer>
+        <JapaneseNameBuffer>32</JapaneseNameBuffer>
+        <MapNameBuffer>32</MapNameBuffer>
+        <Padding>3</Padding>
+      </Settings>
+      <References>
+        <TilesetReferences />
+        <FilenameReferences />
+        <BackgroundTypeReferences />
+        <BackgroundNameReferences />
+        <Spritesheet1References />
+        <Spritesheet2References />
+        <BossNumberReferences>
+          <long>156601</long>
+        </BossNumberReferences>
+        <JapaneseNameReferences />
+        <MapNameReferences />
+      </References>
+    </Item>
+    <Item Key="base/stage.tbl">
+      <Filename>base/stage.tbl</Filename>
+      <DataLocationType>External</DataLocationType>
+      <Offset>0</Offset>
+      <SectionName />
+      <FixedSize>false</FixedSize>
+      <MaximumSize>21755</MaximumSize>
+      <StageTableFormat>normal</StageTableFormat>
+      <StageCount>0</StageCount>
+      <Settings>
+        <BackgroundTypeType>System.Int32</BackgroundTypeType>
+        <BossNumberType>System.SByte</BossNumberType>
+        <FilenameEncoding>us-ascii</FilenameEncoding>
+        <MapNameEncoding>us-ascii</MapNameEncoding>
+        <JapaneseNameEncoding>shift_jis</JapaneseNameEncoding>
+        <TilesetNameBuffer>32</TilesetNameBuffer>
+        <FilenameBuffer>32</FilenameBuffer>
+        <BackgroundNameBuffer>32</BackgroundNameBuffer>
+        <Spritesheet1Buffer>32</Spritesheet1Buffer>
+        <Spritesheet2Buffer>32</Spritesheet2Buffer>
+        <JapaneseNameBuffer>32</JapaneseNameBuffer>
+        <MapNameBuffer>32</MapNameBuffer>
+        <Padding>0</Padding>
+      </Settings>
+      <References>
+        <TilesetReferences />
+        <FilenameReferences />
+        <BackgroundTypeReferences />
+        <BackgroundNameReferences />
+        <Spritesheet1References />
+        <Spritesheet2References />
+        <BossNumberReferences />
+        <JapaneseNameReferences />
+        <MapNameReferences />
+      </References>
+    </Item>
+    <Item Key="boss/mod/stage.tbl">
+      <Filename>boss/mod/stage.tbl</Filename>
+      <DataLocationType>External</DataLocationType>
+      <Offset>0</Offset>
+      <SectionName />
+      <FixedSize>false</FixedSize>
+      <MaximumSize>21755</MaximumSize>
+      <StageTableFormat>normal</StageTableFormat>
+      <StageCount>0</StageCount>
+      <Settings>
+        <BackgroundTypeType>System.Int32</BackgroundTypeType>
+        <BossNumberType>System.SByte</BossNumberType>
+        <FilenameEncoding>us-ascii</FilenameEncoding>
+        <MapNameEncoding>us-ascii</MapNameEncoding>
+        <JapaneseNameEncoding>shift_jis</JapaneseNameEncoding>
+        <TilesetNameBuffer>32</TilesetNameBuffer>
+        <FilenameBuffer>32</FilenameBuffer>
+        <BackgroundNameBuffer>32</BackgroundNameBuffer>
+        <Spritesheet1Buffer>32</Spritesheet1Buffer>
+        <Spritesheet2Buffer>32</Spritesheet2Buffer>
+        <JapaneseNameBuffer>32</JapaneseNameBuffer>
+        <MapNameBuffer>32</MapNameBuffer>
+        <Padding>0</Padding>
+      </Settings>
+      <References>
+        <TilesetReferences />
+        <FilenameReferences />
+        <BackgroundTypeReferences />
+        <BackgroundNameReferences />
+        <Spritesheet1References />
+        <Spritesheet2References />
+        <BossNumberReferences />
+        <JapaneseNameReferences />
+        <MapNameReferences />
+      </References>
+    </Item>
+    <Item Key="EasyMod/mod/stage.tbl">
+      <Filename>EasyMod/mod/stage.tbl</Filename>
+      <DataLocationType>External</DataLocationType>
+      <Offset>0</Offset>
+      <SectionName />
+      <FixedSize>false</FixedSize>
+      <MaximumSize>21755</MaximumSize>
+      <StageTableFormat>normal</StageTableFormat>
+      <StageCount>0</StageCount>
+      <Settings>
+        <BackgroundTypeType>System.Int32</BackgroundTypeType>
+        <BossNumberType>System.SByte</BossNumberType>
+        <FilenameEncoding>us-ascii</FilenameEncoding>
+        <MapNameEncoding>us-ascii</MapNameEncoding>
+        <JapaneseNameEncoding>shift_jis</JapaneseNameEncoding>
+        <TilesetNameBuffer>32</TilesetNameBuffer>
+        <FilenameBuffer>32</FilenameBuffer>
+        <BackgroundNameBuffer>32</BackgroundNameBuffer>
+        <Spritesheet1Buffer>32</Spritesheet1Buffer>
+        <Spritesheet2Buffer>32</Spritesheet2Buffer>
+        <JapaneseNameBuffer>32</JapaneseNameBuffer>
+        <MapNameBuffer>32</MapNameBuffer>
+        <Padding>0</Padding>
+      </Settings>
+      <References>
+        <TilesetReferences />
+        <FilenameReferences />
+        <BackgroundTypeReferences />
+        <BackgroundNameReferences />
+        <Spritesheet1References />
+        <Spritesheet2References />
+        <BossNumberReferences />
+        <JapaneseNameReferences />
+        <MapNameReferences />
+      </References>
+    </Item>
+    <Item Key="Kaze/mod/stage.tbl">
+      <Filename>Kaze/mod/stage.tbl</Filename>
+      <DataLocationType>External</DataLocationType>
+      <Offset>0</Offset>
+      <SectionName />
+      <FixedSize>false</FixedSize>
+      <MaximumSize>21755</MaximumSize>
+      <StageTableFormat>normal</StageTableFormat>
+      <StageCount>0</StageCount>
+      <Settings>
+        <BackgroundTypeType>System.Int32</BackgroundTypeType>
+        <BossNumberType>System.SByte</BossNumberType>
+        <FilenameEncoding>us-ascii</FilenameEncoding>
+        <MapNameEncoding>us-ascii</MapNameEncoding>
+        <JapaneseNameEncoding>shift_jis</JapaneseNameEncoding>
+        <TilesetNameBuffer>32</TilesetNameBuffer>
+        <FilenameBuffer>32</FilenameBuffer>
+        <BackgroundNameBuffer>32</BackgroundNameBuffer>
+        <Spritesheet1Buffer>32</Spritesheet1Buffer>
+        <Spritesheet2Buffer>32</Spritesheet2Buffer>
+        <JapaneseNameBuffer>32</JapaneseNameBuffer>
+        <MapNameBuffer>32</MapNameBuffer>
+        <Padding>0</Padding>
+      </Settings>
+      <References>
+        <TilesetReferences />
+        <FilenameReferences />
+        <BackgroundTypeReferences />
+        <BackgroundNameReferences />
+        <Spritesheet1References />
+        <Spritesheet2References />
+        <BossNumberReferences />
+        <JapaneseNameReferences />
+        <MapNameReferences />
+      </References>
+    </Item>
+    <Item Key="MizaF/mod/stage.tbl">
+      <Filename>MizaF/mod/stage.tbl</Filename>
+      <DataLocationType>External</DataLocationType>
+      <Offset>0</Offset>
+      <SectionName />
+      <FixedSize>false</FixedSize>
+      <MaximumSize>21755</MaximumSize>
+      <StageTableFormat>normal</StageTableFormat>
+      <StageCount>0</StageCount>
+      <Settings>
+        <BackgroundTypeType>System.Int32</BackgroundTypeType>
+        <BossNumberType>System.SByte</BossNumberType>
+        <FilenameEncoding>us-ascii</FilenameEncoding>
+        <MapNameEncoding>us-ascii</MapNameEncoding>
+        <JapaneseNameEncoding>shift_jis</JapaneseNameEncoding>
+        <TilesetNameBuffer>32</TilesetNameBuffer>
+        <FilenameBuffer>32</FilenameBuffer>
+        <BackgroundNameBuffer>32</BackgroundNameBuffer>
+        <Spritesheet1Buffer>32</Spritesheet1Buffer>
+        <Spritesheet2Buffer>32</Spritesheet2Buffer>
+        <JapaneseNameBuffer>32</JapaneseNameBuffer>
+        <MapNameBuffer>32</MapNameBuffer>
+        <Padding>0</Padding>
+      </Settings>
+      <References>
+        <TilesetReferences />
+        <FilenameReferences />
+        <BackgroundTypeReferences />
+        <BackgroundNameReferences />
+        <Spritesheet1References />
+        <Spritesheet2References />
+        <BossNumberReferences />
+        <JapaneseNameReferences />
+        <MapNameReferences />
+      </References>
+    </Item>
+    <Item Key="Nemesis/mod/stage.tbl">
+      <Filename>Nemesis/mod/stage.tbl</Filename>
+      <DataLocationType>External</DataLocationType>
+      <Offset>0</Offset>
+      <SectionName />
+      <FixedSize>false</FixedSize>
+      <MaximumSize>21755</MaximumSize>
+      <StageTableFormat>normal</StageTableFormat>
+      <StageCount>0</StageCount>
+      <Settings>
+        <BackgroundTypeType>System.Int32</BackgroundTypeType>
+        <BossNumberType>System.SByte</BossNumberType>
+        <FilenameEncoding>us-ascii</FilenameEncoding>
+        <MapNameEncoding>us-ascii</MapNameEncoding>
+        <JapaneseNameEncoding>shift_jis</JapaneseNameEncoding>
+        <TilesetNameBuffer>32</TilesetNameBuffer>
+        <FilenameBuffer>32</FilenameBuffer>
+        <BackgroundNameBuffer>32</BackgroundNameBuffer>
+        <Spritesheet1Buffer>32</Spritesheet1Buffer>
+        <Spritesheet2Buffer>32</Spritesheet2Buffer>
+        <JapaneseNameBuffer>32</JapaneseNameBuffer>
+        <MapNameBuffer>32</MapNameBuffer>
+        <Padding>0</Padding>
+      </Settings>
+      <References>
+        <TilesetReferences />
+        <FilenameReferences />
+        <BackgroundTypeReferences />
+        <BackgroundNameReferences />
+        <Spritesheet1References />
+        <Spritesheet2References />
+        <BossNumberReferences />
+        <JapaneseNameReferences />
+        <MapNameReferences />
+      </References>
+    </Item>
+    <Item Key="TimeTrial/mod/stage.tbl">
+      <Filename>TimeTrial/mod/stage.tbl</Filename>
+      <DataLocationType>External</DataLocationType>
+      <Offset>0</Offset>
+      <SectionName />
+      <FixedSize>false</FixedSize>
+      <MaximumSize>21755</MaximumSize>
+      <StageTableFormat>normal</StageTableFormat>
+      <StageCount>0</StageCount>
+      <Settings>
+        <BackgroundTypeType>System.Int32</BackgroundTypeType>
+        <BossNumberType>System.SByte</BossNumberType>
+        <FilenameEncoding>us-ascii</FilenameEncoding>
+        <MapNameEncoding>us-ascii</MapNameEncoding>
+        <JapaneseNameEncoding>shift_jis</JapaneseNameEncoding>
+        <TilesetNameBuffer>32</TilesetNameBuffer>
+        <FilenameBuffer>32</FilenameBuffer>
+        <BackgroundNameBuffer>32</BackgroundNameBuffer>
+        <Spritesheet1Buffer>32</Spritesheet1Buffer>
+        <Spritesheet2Buffer>32</Spritesheet2Buffer>
+        <JapaneseNameBuffer>32</JapaneseNameBuffer>
+        <MapNameBuffer>32</MapNameBuffer>
+        <Padding>0</Padding>
+      </Settings>
+      <References>
+        <TilesetReferences />
+        <FilenameReferences />
+        <BackgroundTypeReferences />
+        <BackgroundNameReferences />
+        <Spritesheet1References />
+        <Spritesheet2References />
+        <BossNumberReferences />
+        <JapaneseNameReferences />
+        <MapNameReferences />
+      </References>
+    </Item>
+  </StageTables>
+  <NPCTables>
+    <Item Key="base/npc.tbl">
+      <Filename>base/npc.tbl</Filename>
+      <DataLocationType>External</DataLocationType>
+      <Offset>0</Offset>
+      <FixedSize>false</FixedSize>
+      <MaximumSize>0</MaximumSize>
+      <NpcTableFormat>ByType</NpcTableFormat>
+      <NpcCount>0</NpcCount>
+    </Item>
+    <Item Key="boss/mod/npc.tbl">
+      <Filename>boss/mod/npc.tbl</Filename>
+      <DataLocationType>External</DataLocationType>
+      <Offset>0</Offset>
+      <FixedSize>false</FixedSize>
+      <MaximumSize>0</MaximumSize>
+      <NpcTableFormat>ByType</NpcTableFormat>
+      <NpcCount>0</NpcCount>
+    </Item>
+    <Item Key="CurlyStory/mod/npc.tbl">
+      <Filename>CurlyStory/mod/npc.tbl</Filename>
+      <DataLocationType>External</DataLocationType>
+      <Offset>0</Offset>
+      <FixedSize>false</FixedSize>
+      <MaximumSize>0</MaximumSize>
+      <NpcTableFormat>ByType</NpcTableFormat>
+      <NpcCount>0</NpcCount>
+    </Item>
+    <Item Key="EasyMod/mod/npc.tbl">
+      <Filename>EasyMod/mod/npc.tbl</Filename>
+      <DataLocationType>External</DataLocationType>
+      <Offset>0</Offset>
+      <FixedSize>false</FixedSize>
+      <MaximumSize>0</MaximumSize>
+      <NpcTableFormat>ByType</NpcTableFormat>
+      <NpcCount>0</NpcCount>
+    </Item>
+    <Item Key="Kaze/mod/npc.tbl">
+      <Filename>Kaze/mod/npc.tbl</Filename>
+      <DataLocationType>External</DataLocationType>
+      <Offset>0</Offset>
+      <FixedSize>false</FixedSize>
+      <MaximumSize>0</MaximumSize>
+      <NpcTableFormat>ByType</NpcTableFormat>
+      <NpcCount>0</NpcCount>
+    </Item>
+    <Item Key="MizaF/mod/npc.tbl">
+      <Filename>MizaF/mod/npc.tbl</Filename>
+      <DataLocationType>External</DataLocationType>
+      <Offset>0</Offset>
+      <FixedSize>false</FixedSize>
+      <MaximumSize>0</MaximumSize>
+      <NpcTableFormat>ByType</NpcTableFormat>
+      <NpcCount>0</NpcCount>
+    </Item>
+    <Item Key="Nemesis/mod/npc.tbl">
+      <Filename>Nemesis/mod/npc.tbl</Filename>
+      <DataLocationType>External</DataLocationType>
+      <Offset>0</Offset>
+      <FixedSize>false</FixedSize>
+      <MaximumSize>0</MaximumSize>
+      <NpcTableFormat>ByType</NpcTableFormat>
+      <NpcCount>0</NpcCount>
+    </Item>
+    <Item Key="TimeTrial/mod/npc.tbl">
+      <Filename>TimeTrial/mod/npc.tbl</Filename>
+      <DataLocationType>External</DataLocationType>
+      <Offset>0</Offset>
+      <FixedSize>false</FixedSize>
+      <MaximumSize>0</MaximumSize>
+      <NpcTableFormat>ByType</NpcTableFormat>
+      <NpcCount>0</NpcCount>
+    </Item>
+  </NPCTables>
+  <BulletTables>
+    <Item Key="base/bullet.tbl">
+      <Filename>base/bullet.tbl</Filename>
+      <DataLocationType>External</DataLocationType>
+      <Offset>0</Offset>
+      <SectionName />
+      <FixedSize>false</FixedSize>
+      <MaximumSize>0</MaximumSize>
+      <BulletCount>46</BulletCount>
+      <PadDamageAndHits>false</PadDamageAndHits>
+    </Item>
+  </BulletTables>
+  <ArmsLevelTables>
+    <Item Key="base/arms_level.tbl">
+      <Filename>base/arms_level.tbl</Filename>
+      <DataLocationType>Internal</DataLocationType>
+      <Offset>0</Offset>
+      <FixedSize>false</FixedSize>
+      <MaximumSize>0</MaximumSize>
+      <ArmsCount>14</ArmsCount>
+      <LevelCount>3</LevelCount>
+    </Item>
+  </ArmsLevelTables>
+  <ImageTransparentColor />
+  <ImagesCopyrighted>false</ImagesCopyrighted>
+  <ImageCopyrightText>(C)Pixel</ImageCopyrightText>
+  <BackgroundPrefix>bk</BackgroundPrefix>
+  <TilesetPrefix>Prt</TilesetPrefix>
+  <SpritesheetPrefix>Npc</SpritesheetPrefix>
+  <ImageExtension>.bmp</ImageExtension>
+  <MapExtension>.pxm</MapExtension>
+  <EntityExtension>.pxe</EntityExtension>
+  <AttributeExtension>.pxa</AttributeExtension>
+  <ScriptExtension>.tsc</ScriptExtension>
+  <UseScriptSource>false</UseScriptSource>
+  <ScriptsEncrypted>true</ScriptsEncrypted>
+  <ScriptKeyLocation>2</ScriptKeyLocation>
+  <DefaultEncryptionKey>7</DefaultEncryptionKey>
+  <ScreenWidth>320</ScreenWidth>
+  <ScreenHeight>240</ScreenHeight>
+  <SelectedLayoutIndex>0</SelectedLayoutIndex>
+  <Layouts>
+    <AssetLayout>
+      <DataPaths>
+        <string>base</string>
+      </DataPaths>
+      <StagePaths>
+        <string>base/Stage</string>
+      </StagePaths>
+      <NpcPaths>
+        <string>base/Npc</string>
+      </NpcPaths>
+      <StageTables>
+        <TableLoadInfo Write="true">Internal 1</TableLoadInfo>
+        <TableLoadInfo Write="true">base/stage.tbl</TableLoadInfo>
+      </StageTables>
+      <NpcTables>
+        <TableLoadInfo Write="true">base/npc.tbl</TableLoadInfo>
+      </NpcTables>
+      <BulletTables>
+        <TableLoadInfo Write="true">base/bullet.tbl</TableLoadInfo>
+      </BulletTables>
+      <ArmsLevelTables>
+        <TableLoadInfo Write="true">base/arms_level.tbl</TableLoadInfo>
+      </ArmsLevelTables>
+      <TileSize>16</TileSize>
+      <EntityOverrides />
+    </AssetLayout>
+    <AssetLayout>
+      <DataPaths>
+        <string>base</string>
+        <string>boss/mod</string>
+      </DataPaths>
+      <StagePaths>
+        <string>base/Stage</string>
+        <string>boss/mod/Stage</string>
+      </StagePaths>
+      <NpcPaths>
+        <string>base/Npc</string>
+      </NpcPaths>
+      <StageTables>
+        <TableLoadInfo Write="false">Internal 1</TableLoadInfo>
+        <TableLoadInfo Write="false">base/stage.tbl</TableLoadInfo>
+        <TableLoadInfo Write="true">boss/mod/stage.tbl</TableLoadInfo>
+      </StageTables>
+      <NpcTables>
+        <TableLoadInfo Write="false">base/npc.tbl</TableLoadInfo>
+        <TableLoadInfo Write="true">boss/mod/npc.tbl</TableLoadInfo>
+      </NpcTables>
+      <BulletTables>
+        <TableLoadInfo Write="false">base/bullet.tbl</TableLoadInfo>
+      </BulletTables>
+      <ArmsLevelTables>
+        <TableLoadInfo Write="false">base/arms_level.tbl</TableLoadInfo>
+      </ArmsLevelTables>
+      <TileSize>16</TileSize>
+      <EntityOverrides />
+    </AssetLayout>
+    <AssetLayout>
+      <DataPaths>
+        <string>base</string>
+        <string>Christmas/season</string>
+      </DataPaths>
+      <StagePaths>
+        <string>base/Stage</string>
+        <string>Christmas/season/Stage</string>
+      </StagePaths>
+      <NpcPaths>
+        <string>base/Npc</string>
+        <string>Christmas/season/Npc</string>
+      </NpcPaths>
+      <StageTables>
+        <TableLoadInfo Write="false">Internal 1</TableLoadInfo>
+        <TableLoadInfo Write="false">base/stage.tbl</TableLoadInfo>
+      </StageTables>
+      <NpcTables>
+        <TableLoadInfo Write="false">base/npc.tbl</TableLoadInfo>
+      </NpcTables>
+      <BulletTables>
+        <TableLoadInfo Write="false">base/bullet.tbl</TableLoadInfo>
+      </BulletTables>
+      <ArmsLevelTables>
+        <TableLoadInfo Write="false">base/arms_level.tbl</TableLoadInfo>
+      </ArmsLevelTables>
+      <TileSize>16</TileSize>
+      <EntityOverrides />
+    </AssetLayout>
+    <AssetLayout>
+      <DataPaths>
+        <string>base</string>
+        <string>CurlyStory/mod</string>
+      </DataPaths>
+      <StagePaths>
+        <string>base/Stage</string>
+        <string>CurlyStory/mod/Stage</string>
+      </StagePaths>
+      <NpcPaths>
+        <string>base/Npc</string>
+        <string>CurlyStory/mod/Npc</string>
+      </NpcPaths>
+      <StageTables>
+        <TableLoadInfo Write="false">Internal 1</TableLoadInfo>
+        <TableLoadInfo Write="false">base/stage.tbl</TableLoadInfo>
+      </StageTables>
+      <NpcTables>
+        <TableLoadInfo Write="false">base/npc.tbl</TableLoadInfo>
+        <TableLoadInfo Write="true">CurlyStory/mod/npc.tbl</TableLoadInfo>
+      </NpcTables>
+      <BulletTables>
+        <TableLoadInfo Write="false">base/bullet.tbl</TableLoadInfo>
+      </BulletTables>
+      <ArmsLevelTables>
+        <TableLoadInfo Write="false">base/arms_level.tbl</TableLoadInfo>
+      </ArmsLevelTables>
+      <TileSize>16</TileSize>
+      <EntityOverrides />
+    </AssetLayout>
+    <AssetLayout>
+      <DataPaths>
+        <string>base</string>
+        <string>EasyMod/mod</string>
+      </DataPaths>
+      <StagePaths>
+        <string>base/Stage</string>
+        <string>EasyMod/mod/Stage</string>
+      </StagePaths>
+      <NpcPaths>
+        <string>base/Npc</string>
+      </NpcPaths>
+      <StageTables>
+        <TableLoadInfo Write="false">Internal 1</TableLoadInfo>
+        <TableLoadInfo Write="false">base/stage.tbl</TableLoadInfo>
+        <TableLoadInfo Write="true">EasyMod/mod/stage.tbl</TableLoadInfo>
+      </StageTables>
+      <NpcTables>
+        <TableLoadInfo Write="false">base/npc.tbl</TableLoadInfo>
+        <TableLoadInfo Write="true">EasyMod/mod/npc.tbl</TableLoadInfo>
+      </NpcTables>
+      <BulletTables>
+        <TableLoadInfo Write="false">base/bullet.tbl</TableLoadInfo>
+      </BulletTables>
+      <ArmsLevelTables>
+        <TableLoadInfo Write="false">base/arms_level.tbl</TableLoadInfo>
+      </ArmsLevelTables>
+      <TileSize>16</TileSize>
+      <EntityOverrides />
+    </AssetLayout>
+    <AssetLayout>
+      <DataPaths>
+        <string>base</string>
+        <string>Halloween/season</string>
+      </DataPaths>
+      <StagePaths>
+        <string>base/Stage</string>
+        <string>Halloween/season/Stage</string>
+      </StagePaths>
+      <NpcPaths>
+        <string>base/Npc</string>
+        <string>Halloween/season/Npc</string>
+      </NpcPaths>
+      <StageTables>
+        <TableLoadInfo Write="false">Internal 1</TableLoadInfo>
+        <TableLoadInfo Write="false">base/stage.tbl</TableLoadInfo>
+      </StageTables>
+      <NpcTables>
+        <TableLoadInfo Write="false">base/npc.tbl</TableLoadInfo>
+      </NpcTables>
+      <BulletTables>
+        <TableLoadInfo Write="false">base/bullet.tbl</TableLoadInfo>
+      </BulletTables>
+      <ArmsLevelTables>
+        <TableLoadInfo Write="false">base/arms_level.tbl</TableLoadInfo>
+      </ArmsLevelTables>
+      <TileSize>16</TileSize>
+      <EntityOverrides />
+    </AssetLayout>
+    <AssetLayout>
+      <DataPaths>
+        <string>base</string>
+        <string>Kaze/mod</string>
+      </DataPaths>
+      <StagePaths>
+        <string>base/Stage</string>
+        <string>Kaze/mod/Stage</string>
+      </StagePaths>
+      <NpcPaths>
+        <string>base/Npc</string>
+        <string>Kaze/mod/Npc</string>
+      </NpcPaths>
+      <StageTables>
+        <TableLoadInfo Write="false">Internal 1</TableLoadInfo>
+        <TableLoadInfo Write="false">base/stage.tbl</TableLoadInfo>
+        <TableLoadInfo Write="true">Kaze/mod/stage.tbl</TableLoadInfo>
+      </StageTables>
+      <NpcTables>
+        <TableLoadInfo Write="false">base/npc.tbl</TableLoadInfo>
+        <TableLoadInfo Write="true">Kaze/mod/npc.tbl</TableLoadInfo>
+      </NpcTables>
+      <BulletTables>
+        <TableLoadInfo Write="false">base/bullet.tbl</TableLoadInfo>
+      </BulletTables>
+      <ArmsLevelTables>
+        <TableLoadInfo Write="false">base/arms_level.tbl</TableLoadInfo>
+      </ArmsLevelTables>
+      <TileSize>16</TileSize>
+      <EntityOverrides />
+    </AssetLayout>
+    <AssetLayout>
+      <DataPaths>
+        <string>base</string>
+        <string>MizaF/mod</string>
+      </DataPaths>
+      <StagePaths>
+        <string>base/Stage</string>
+        <string>MizaF/mod/Stage</string>
+      </StagePaths>
+      <NpcPaths>
+        <string>base/Npc</string>
+      </NpcPaths>
+      <StageTables>
+        <TableLoadInfo Write="false">Internal 1</TableLoadInfo>
+        <TableLoadInfo Write="false">base/stage.tbl</TableLoadInfo>
+        <TableLoadInfo Write="true">MizaF/mod/stage.tbl</TableLoadInfo>
+      </StageTables>
+      <NpcTables>
+        <TableLoadInfo Write="false">base/npc.tbl</TableLoadInfo>
+        <TableLoadInfo Write="true">MizaF/mod/npc.tbl</TableLoadInfo>
+      </NpcTables>
+      <BulletTables>
+        <TableLoadInfo Write="false">base/bullet.tbl</TableLoadInfo>
+      </BulletTables>
+      <ArmsLevelTables>
+        <TableLoadInfo Write="false">base/arms_level.tbl</TableLoadInfo>
+      </ArmsLevelTables>
+      <TileSize>16</TileSize>
+      <EntityOverrides />
+    </AssetLayout>
+    <AssetLayout>
+      <DataPaths>
+        <string>base</string>
+        <string>Nemesis/mod</string>
+      </DataPaths>
+      <StagePaths>
+        <string>base/Stage</string>
+        <string>Nemesis/mod/Stage</string>
+      </StagePaths>
+      <NpcPaths>
+        <string>base/Npc</string>
+      </NpcPaths>
+      <StageTables>
+        <TableLoadInfo Write="false">Internal 1</TableLoadInfo>
+        <TableLoadInfo Write="false">base/stage.tbl</TableLoadInfo>
+        <TableLoadInfo Write="true">Nemesis/mod/stage.tbl</TableLoadInfo>
+      </StageTables>
+      <NpcTables>
+        <TableLoadInfo Write="false">base/npc.tbl</TableLoadInfo>
+        <TableLoadInfo Write="true">Nemesis/mod/npc.tbl</TableLoadInfo>
+      </NpcTables>
+      <BulletTables>
+        <TableLoadInfo Write="false">base/bullet.tbl</TableLoadInfo>
+      </BulletTables>
+      <ArmsLevelTables>
+        <TableLoadInfo Write="false">base/arms_level.tbl</TableLoadInfo>
+      </ArmsLevelTables>
+      <TileSize>16</TileSize>
+      <EntityOverrides />
+    </AssetLayout>
+    <AssetLayout>
+      <DataPaths>
+        <string>base</string>
+        <string>TimeTrial/mod</string>
+      </DataPaths>
+      <StagePaths>
+        <string>base/Stage</string>
+        <string>TimeTrial/mod/Stage</string>
+      </StagePaths>
+      <NpcPaths>
+        <string>base/Npc</string>
+      </NpcPaths>
+      <StageTables>
+        <TableLoadInfo Write="false">Internal 1</TableLoadInfo>
+        <TableLoadInfo Write="false">base/stage.tbl</TableLoadInfo>
+        <TableLoadInfo Write="true">TimeTrial/mod/stage.tbl</TableLoadInfo>
+      </StageTables>
+      <NpcTables>
+        <TableLoadInfo Write="false">base/npc.tbl</TableLoadInfo>
+        <TableLoadInfo Write="true">TimeTrial/mod/npc.tbl</TableLoadInfo>
+      </NpcTables>
+      <BulletTables>
+        <TableLoadInfo Write="false">base/bullet.tbl</TableLoadInfo>
+      </BulletTables>
+      <ArmsLevelTables>
+        <TableLoadInfo Write="false">base/arms_level.tbl</TableLoadInfo>
+      </ArmsLevelTables>
+      <TileSize>16</TileSize>
+      <EntityOverrides />
+    </AssetLayout>
+  </Layouts>
+</ProjectFile>
