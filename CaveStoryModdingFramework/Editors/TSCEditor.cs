@@ -541,6 +541,7 @@ namespace CaveStoryModdingFramework.Editors
         {
             ArgumentEncoding = new EscapedASCII()
             {
+                ForceOneCharWidth = true,
                 DoubleEscapeBytes = false
             };
             if (textEncoding != null)
@@ -594,7 +595,7 @@ namespace CaveStoryModdingFramework.Editors
                     if(data.Position < data.Length)
                         eventData.AddRange(data.ReadUntilLengthOrSequences(EventLength - EventAdvance, EventStart, EventEnd));
 
-                    AppendToBuffer(EncodingOverrides.EscapedOneCharWideASCII.GetString(eventData.ToArray()));
+                    AppendToBuffer(ArgumentEncoding.GetString(eventData.ToArray()));
                 }
                 else if (data.CheckBytes(EventEnd))
                 {
@@ -622,7 +623,7 @@ namespace CaveStoryModdingFramework.Editors
                             argValues.Add(argData.GetTSCNum());
                         if (arg.Length <= 0 || argumentQueue.Count > 0)
                             argData.AddRange(data.ReadUntilLengthOrSequences(arg.Separator.Length, EventStart));
-                        AppendToBuffer(EncodingOverrides.EscapedOneCharWideASCII.GetString(argData.ToArray()));
+                        AppendToBuffer(ArgumentEncoding.GetString(argData.ToArray()));
                     }
                     else if(dequeuedArg is RepeatStructure repeat)
                     {
@@ -777,7 +778,7 @@ namespace CaveStoryModdingFramework.Editors
                         if (advanceOk && (arg.Length <= 0 || Arguments.Count > 0))
                             argData.AddRange(LocalExtensions.ReadUntilLengthOrSequences(ref TSCoffset, out advanceOk, arg.Separator.Length, EventStart));
                         Tokens[index].Add(new TSCArgumentToken(current,
-                            EncodingOverrides.EscapedOneCharWideASCII.GetString(argData.ToArray()).Length,
+                            ArgumentEncoding.GetString(argData.ToArray()).Length,
                             ArgumentEncoding, arg));
                     }
                     else if (dequeuedArg is RepeatStructure repeat)
