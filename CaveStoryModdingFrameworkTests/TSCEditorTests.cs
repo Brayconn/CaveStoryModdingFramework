@@ -385,8 +385,11 @@ namespace CaveStoryModdingFrameworkTests
         public void LoadOk(byte[] data, byte[] expected, Encoding encoding)
         {
             TSCEditor editor = new TSCEditor(data, false, encoding);
-            var buf = (LinkedList<byte>)TSCbuffer.GetValue(editor);
-            Assert.Equal(expected, buf.ToArray());
+            var buf = ((LinkedList<byte>)TSCbuffer.GetValue(editor)).ToArray();
+            output.WriteLine("Input:\n" + editor.TextEncoding.GetString(data));
+            output.WriteLine("Expected:\n" + editor.TextEncoding.GetString(expected));
+            output.WriteLine("Actual:\n" + editor.TextEncoding.GetString(buf));
+            Assert.Equal(expected, buf);
         }
 
         
