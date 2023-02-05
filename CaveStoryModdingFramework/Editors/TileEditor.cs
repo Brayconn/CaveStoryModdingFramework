@@ -314,7 +314,7 @@ namespace CaveStoryModdingFramework.Editors
             var startIndex = (y * Tiles.Width) + x;
             
             //span/seed fill adapted from Wikipedia
-            //https://en.wikipedia.org/wiki/Flood_fill#Span_Filling
+            //https://en.wikipedia.org/wiki/Flood_fill#Span_filling
             if (!TileChangeQueue.ContainsKey(startIndex))
             {
                 var f = (byte)Tiles.Tiles[startIndex];
