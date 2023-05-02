@@ -395,7 +395,7 @@ namespace CaveStoryModdingFramework.Editors
             {
                 var nextOk = ReadProcessingEscapes(ref node, out var b);
           
-                value += (b - 0x30) * (int)Math.Pow(10, length - 1 - i);
+                value += (((sbyte)b) - 0x30) * PowersOfTen[length - 1 - i];
                 
                 //give up if there's no more input
                 if (!nextOk)
@@ -404,16 +404,41 @@ namespace CaveStoryModdingFramework.Editors
             return value;
         }
 
+        public static readonly int[] PowersOfTen = new int[]
+        {
+            1,
+            10,
+            100,
+            1000,
+            10_000,
+            100_000,
+            1_000_000,
+            10_000_000,
+            100_000_000,
+            1_000_000_000,
+            //Anything over one billion will error
+            //Meaning you can't read TSC numbers larger than 10 digits
+        };
+
         public static int GetTSCNum(this IList<byte> arr)
         {
             int value = 0;
             for (int i = 0; i < arr.Count; i++)
             {                
-                value += (arr[i] - 0x30) * (int)Math.Pow(10, arr.Count - 1 - i);
+                value += (((sbyte)arr[i]) - 0x30) * PowersOfTen[arr.Count - 1 - i];
             }
             return value;
         }
-        
+        public static int GetTSCNum(this IList<sbyte> arr)
+        {
+            int value = 0;
+            for (int i = 0; i < arr.Count; i++)
+            {
+                value += (arr[i] - 0x30) * PowersOfTen[arr.Count - 1 - i];
+            }
+            return value;
+        }
+
     }
     #region Tokens
 
