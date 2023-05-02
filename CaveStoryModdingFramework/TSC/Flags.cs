@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text;
 
 namespace CaveStoryModdingFramework.TSC
@@ -11,6 +12,134 @@ namespace CaveStoryModdingFramework.TSC
 
         public const int MapFlagAddress = 0x49E5B8;
 
+        /// <summary>
+        /// -176
+        /// </summary>
+        public const int MIN_DIGIT = sbyte.MinValue - '0';
+        /// <summary>
+        /// -1936
+        /// </summary>
+        public const int MIN_2_DIGIT = (10 * MIN_DIGIT) + MIN_DIGIT;
+        /// <summary>
+        /// -19536
+        /// </summary>
+        public const int MIN_3_DIGIT = (100 * MIN_DIGIT) + MIN_2_DIGIT;
+        /// <summary>
+        /// -195536
+        /// </summary>
+        public const int MIN_4_DIGIT = (1000 * MIN_DIGIT) + MIN_3_DIGIT;
+
+        /// <summary>
+        /// 79
+        /// </summary>
+        public const int MAX_DIGIT = sbyte.MaxValue - '0';
+        /// <summary>
+        /// 869
+        /// </summary>
+        public const int MAX_2_DIGIT = (10 * MAX_DIGIT) + MAX_DIGIT;
+        /// <summary>
+        /// 8769
+        /// </summary>
+        public const int MAX_3_DIGIT = (100 * MAX_DIGIT) + MAX_2_DIGIT;
+        /// <summary>
+        /// 87769
+        /// </summary>
+        public const int MAX_4_DIGIT = (1000 * MAX_DIGIT) + MAX_3_DIGIT;
+
+        //It's probably obvious by the definition, but these are given by the formula
+        // (|MIN_DIGIT| + 1) * (10^x) - 1 - MAX_10^(x-1)_DIGIT
+        //I'm not exactly sure why this is the formula to use, and there might be an expanded form that works better too
+        //but for the purpose of getting these functions working, it's enough
+        /// <summary>
+        /// 1690
+        /// </summary>
+        public const int START_2_DIGIT = (-MIN_DIGIT + 1) * 10 - 1 - MAX_DIGIT;
+        /// <summary>
+        /// 16830
+        /// </summary>
+        public const int START_3_DIGIT = (-MIN_DIGIT + 1) * 100 - 1 - MAX_2_DIGIT;
+        /// <summary>
+        /// 168232
+        /// </summary>
+        public const int START_4_DIGIT = (-MIN_DIGIT + 1) * 1000 - 1 - MAX_3_DIGIT;
+
+        #region 2-digit iteration
+
+        public static (int,int) Get2Bounds(int target)
+        {
+            return (
+                Math.Max(MIN_DIGIT, ((target + START_2_DIGIT) / 10) + MIN_DIGIT),
+                Math.Min(((target - MIN_2_DIGIT) / 10) + MIN_DIGIT, MAX_DIGIT)
+                );
+        }
+
+        public static IEnumerable<(int,int)> Iterate2Flags(int target)
+        {
+            if (target < MIN_2_DIGIT || MAX_2_DIGIT < target)
+                throw new ArgumentOutOfRangeException(nameof(target));
+
+            (int start, int end) = Get2Bounds(target);
+            for (int i = start; i <= end; i++)
+            {
+                int x = (-10 * i) + target;
+                yield return (i, x);
+            }
+        }
+
+        #endregion
+
+        #region 3-digit iteration
+
+        public static (int,int) Get3Bounds(int target)
+        {
+            return (
+                Math.Max(MIN_DIGIT, ((target + START_3_DIGIT) / 100) + MIN_DIGIT),
+                Math.Min(((target - MIN_3_DIGIT) / 100) + MIN_DIGIT, MAX_DIGIT)
+                );
+        }
+        public static IEnumerable<(int,int,int)> Iterate3Flags(int target)
+        {
+            if(target < MIN_3_DIGIT || MAX_3_DIGIT < target)
+                throw new ArgumentOutOfRangeException(nameof(target));
+
+            (var start, var end) = Get3Bounds(target);
+            for(int i = start; i <= end; i++)
+            {
+                foreach(var r in Iterate2Flags(target - (100*i)))
+                {
+                    yield return (i, r.Item1, r.Item2);
+                }
+            }
+        }
+
+        #endregion
+
+        #region 4-digit iteration
+
+        public static (int,int) Get4Bounds(int target)
+        {
+            return (
+                Math.Max(MIN_DIGIT, ((target + START_4_DIGIT) / 1000) + MIN_DIGIT),
+                Math.Min(((target - MIN_4_DIGIT) / 1000) + MIN_DIGIT, MAX_DIGIT)
+                );
+        }
+
+        public static IEnumerable<(int,int,int,int)> Iterate4Flags(int target)
+        {
+            if (target < MIN_4_DIGIT || MAX_4_DIGIT < target)
+                throw new ArgumentOutOfRangeException(nameof(target));
+
+            (var start, var end) = Get4Bounds(target);
+            for(int i = start; i <= end; i++)
+            {
+                foreach (var r in Iterate3Flags(target - (1000 * i)))
+                {
+                    yield return (i, r.Item1, r.Item2, r.Item3);
+                }
+            }
+        }
+
+        #endregion
 
         #region samples
         /* Extremely basic sample methods. Useful for understanding the process
