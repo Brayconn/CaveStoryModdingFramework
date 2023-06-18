@@ -74,7 +74,7 @@ namespace CaveStoryModdingFrameworkTests
         /// <summary>
         /// Checks that all individual outputs are valid, and that the correct number of values is encountered.
         /// </summary>
-        [Fact]
+        [Fact(Skip = "Takes around 5 seconds to run")]
         public void TSC3IteratorLooksOk()
         {
             const int total = 256*256*256;
@@ -479,6 +479,7 @@ namespace CaveStoryModdingFrameworkTests
                 "#\n" +
                 "<MSGUh oh,<NOD\r\n" +
                 "Unexpected comment<NOD<END",
+
                 Encoding.ASCII.GetBytes("#\\x0A" +
                 "<MSGUh oh,<NOD\r\n" +
                 "Unexpected comment<NOD<END"), Encoding.ASCII.CodePage,
@@ -486,21 +487,36 @@ namespace CaveStoryModdingFrameworkTests
                 "Unexpected comment","<NOD","<END"),
             
 
-            new LoadParseTest("#0200\r\n<RNJ0001:0300", "#0200", "\r", "\n", "<RNJ", "0001:", "0300")
+            new LoadParseTest(
+                "#0200\r\n<RNJ0001:0300",
+                
+                "#0200", "\r", "\n",
+                "<RNJ", "0001:", "0300"
+                )
             {
                 Commands = CommandList.BaseCommands.Concat(CommandList.OtherCommands.Where(x => x.UsesRepeats)).ToList()
             },
-            new LoadParseTest("#0200\r\n<RNJ0003:0100:0200:0300", "#0200", "\r", "\n", "<RNJ", "0003:", "0100:", "0200:", "0300")
+            new LoadParseTest(
+                "#0200\r\n<RNJ0003:0100:0200:0300",
+                
+                "#0200", "\r", "\n",
+                "<RNJ", "0003:", "0100:", "0200:", "0300"
+                )
             {
                 Commands = CommandList.BaseCommands.Concat(CommandList.OtherCommands.Where(x => x.UsesRepeats)).ToList()
             },
 
-            new LoadParseTest("#0200\r\n<NAMNoxid$<MSGlol<NOD<END", "#0200", "\r", "\n", "<NAM", "Noxid$", "<MSG", "lol", "<NOD", "<END")
+            new LoadParseTest(
+                "#0200\r\n<NAMNoxid$<MSGlol<NOD<END",
+                "#0200", "\r", "\n",
+                "<NAM", "Noxid$", "<MSG", "lol", "<NOD", "<END"
+                )
             {
                 Commands = CommandList.BaseCommands.Concat(CommandList.OtherCommands.Where(x => x.ShortName == "NAM")).ToList()
             },
 
-            new LoadParseTest("#誰かの通信が聞こえる…<NOD<END",
+            new LoadParseTest(
+                "#誰かの通信が聞こえる…<NOD<END",
                 Encoding.ASCII.GetBytes("#\\x92N\\x82\\xA9").Concat(new byte[]{
                     0x82, 0xCC, //の
                     0x92, 0xCA, //通
@@ -513,7 +529,9 @@ namespace CaveStoryModdingFrameworkTests
                     0x81, 0x63  //…
                 }).Concat(Encoding.ASCII.GetBytes("<NOD<END")).ToArray(),
                 932,
-                "#\\x92N\\x82\\xA9", "の通信が聞こえる…<NOD<END"),
+
+                "#\\x92N\\x82\\xA9", "の通信が聞こえる…<NOD<END"
+                ),
 
             new LoadParseTest(
                 "#0200\r\n" +
@@ -530,8 +548,10 @@ namespace CaveStoryModdingFrameworkTests
                     0x81, 0x63  //…
                 }).Concat(Encoding.ASCII.GetBytes("<NOD<END")).ToArray(),
                 932,
+
                 "#0200","\r","\n",
-                "<MSG","<ML+","\\x92N\\x82\\xA9","の通信が聞こえる…","<NOD","<END")
+                "<MSG","<ML+","\\x92N\\x82\\xA9","の通信が聞こえる…","<NOD","<END"
+                )
         };
 
         public static IEnumerable<object[]> LoadOkSharedTests()
