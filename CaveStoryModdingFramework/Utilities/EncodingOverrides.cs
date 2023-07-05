@@ -293,5 +293,70 @@ namespace CaveStoryModdingFramework.Utilities
                 return Encoding.GetEncoding(name, new EncoderExceptionFallback(), new EscapedByteDecoderFallback());
             }
         }
+
+        public static byte[] GetBytesWithEscapes(Encoding encoding, string text)
+        {
+            if(text.Length <= 0)
+                return Array.Empty<byte>();
+
+            var buffer = new byte[encoding.GetMaxByteCount(text.Length)];
+            int byteIndex = 0;
+            int start = 0, end = start;
+            void AddBytes()
+            {
+                byteIndex += encoding.GetBytes(text, start, end - start, buffer, byteIndex);
+            }
+
+            while(end < text.Length)
+            {
+                start = end;
+                switch(text[end])
+                {
+                    case Utilities.EscapedASCII.EscapeChar:
+                        var remaining = text.Length - end - 1;
+                        if (remaining < 1)
+                        {
+                            end++;
+                            AddBytes();
+                            break;
+                        }
+                        switch(text[end+1])
+                        {
+                            case Utilities.EscapedASCII.EscapeChar:
+                                end++;
+                                AddBytes();
+                                end++;
+                                break;
+                            case Utilities.EscapedASCII.EscapeHexChar:
+                                if (remaining >= 3
+                                    && Extensions.IsHexDigit(text[end+2])
+                                    && Extensions.IsHexDigit(text[end+3]))
+                                {
+                                    buffer[byteIndex++] = Convert.ToByte(text.Substring(end + 2, 2), 16);
+                                    end += 4;
+                                }
+                                else
+                                {
+                                    end++;
+                                    goto NORMAL_TEXT;
+                                }
+                                break;
+                            default:
+                                end++;
+                                goto NORMAL_TEXT;
+                        }
+                        break;
+                    default:
+                        NORMAL_TEXT:
+                        while (end < text.Length && text[end] != Utilities.EscapedASCII.EscapeChar)
+                            end++;
+                        AddBytes();
+                        break;
+                }
+            }
+            var finalBuff = new byte[byteIndex];
+            Array.Copy(buffer, finalBuff, finalBuff.Length);
+            return finalBuff;
+        }
     }
 }
