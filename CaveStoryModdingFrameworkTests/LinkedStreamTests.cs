@@ -385,5 +385,26 @@ namespace CaveStoryModdingFrameworkTests
             DoInsert(false);
             DoInsert(true);
         }
+
+        [Theory]
+        [InlineData(new byte[] { 0x01, 0x02, 0x03 }, new byte[] { 0x04, 0x05, 0x06 })]
+        [InlineData(new byte[0], new byte[] {0x01, 0x02, 0x03})]
+        public void AppendWorks(byte[] initial, byte[] append)
+        {
+            var expected = new byte[initial.Length + append.Length];
+            Array.Copy(initial, expected, initial.Length);
+            Array.Copy(append, 0, expected, initial.Length, append.Length);
+            for(int i = 0; i <= initial.Length; i++)
+            {
+                var s = new LinkedByteStream(initial);
+                s.Position = i;
+                s.Append(append, 0, append.Length);
+
+                var actual = new byte[expected.Length - i];
+                var ac = s.Read(actual, 0, actual.Length);
+                Assert.Equal(expected.Length - i, ac);
+                Assert.Equal(expected.AsSpan(i).ToArray(), actual);
+            }
+        }
     }
 }

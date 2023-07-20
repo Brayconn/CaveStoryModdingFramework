@@ -314,6 +314,7 @@ namespace CaveStoryModdingFramework.Utilities
                 Insert(buffer, offset + overwrite, insert, follow);
             }
         }
+        public abstract void Append(byte[] buffer, int offset, int count);
         public override void Flush()
         {
             //This stream type doesn't need to buffer I think...?
@@ -349,6 +350,22 @@ namespace CaveStoryModdingFramework.Utilities
             if(PositionValid)
                 position++;
             return b;
+        }
+        public override void Append(byte[] buffer, int offset, int count)
+        {
+            if (count <= 0)
+                return;
+
+            if(position == List.Count)
+            {
+                List.AddLast(buffer[offset]);
+                currentNode = List.Last;
+                offset++;
+                count--;
+            }
+
+            for (int i = 0; i < count; i++)
+                List.AddLast(buffer[offset + i]);
         }
         public override void Write(byte[] buffer, int offset, int count)
         {
