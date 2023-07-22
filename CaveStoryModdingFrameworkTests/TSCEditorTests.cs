@@ -6,10 +6,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using Xunit;
 using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace CaveStoryModdingFrameworkTests
 {
@@ -225,11 +225,7 @@ namespace CaveStoryModdingFrameworkTests
         class LoadParseTest
         {
             /// <summary>
-            /// The text that's in this TSC file
-            /// </summary>
-            public string Input { get; }
-            /// <summary>
-            /// The raw bytes that should end up in the TSCBuffer
+            /// The contents of the TSC file
             /// </summary>
             public byte[] Data { get; }
             /// <summary>
@@ -247,16 +243,16 @@ namespace CaveStoryModdingFrameworkTests
             public List<Command>? Commands { get; init; }
 
             public LoadParseTest(string input, params string[] tokens) : this(input, Encoding.ASCII.CodePage, tokens) { }
-            public LoadParseTest(string input, int codepage, params string[] tokens) : this(input, null, codepage, tokens) { }
-            public LoadParseTest(string input, byte[]? data, int codepage, params string[] tokens)
+            public LoadParseTest(string input, int codepage, params string[] tokens)
+                : this(Encoding.GetEncoding(codepage).GetBytes(input), codepage, tokens) { }
+            public LoadParseTest(byte[] data, int codepage, params string[] tokens)
             {
                 Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
                 Encoding = Encoding.GetEncoding(codepage);
 
-                Input = input;
-                Data = data ?? Encoding.GetBytes(Input);
+                Data = data;
                 if (tokens.Length == 0)
-                    Tokens = new string[] { input };
+                    Tokens = new string[] { Encoding.GetString(data) };
                 else
                     Tokens = tokens;
             }
@@ -343,10 +339,8 @@ namespace CaveStoryModdingFrameworkTests
                 "#\n" +
                 "<MSGUh oh,<NOD\r\n" +
                 "Unexpected comment<NOD<END",
+                Encoding.ASCII.CodePage,
 
-                Encoding.ASCII.GetBytes("#\\x0A" +
-                "<MSGUh oh,<NOD\r\n" +
-                "Unexpected comment<NOD<END"), Encoding.ASCII.CodePage,
                 "#\\x0A<MS", "GUh oh,<NOD\r","\n",
                 "Unexpected comment","<NOD","<END"),
             
@@ -381,72 +375,38 @@ namespace CaveStoryModdingFrameworkTests
 
             new LoadParseTest(
                 "#誰かの通信が聞こえる…<NOD<END",
-                Encoding.ASCII.GetBytes("#\\x92N\\x82\\xA9").Concat(new byte[]{
-                    0x82, 0xCC, //の
-                    0x92, 0xCA, //通
-                    0x90, 0x4D, //信
-                    0x82, 0xAA, //が
-                    0x95, 0xB7, //聞
-                    0x82, 0xB1, //こ
-                    0x82, 0xA6, //え
-                    0x82, 0xE9, //る
-                    0x81, 0x63  //…
-                }).Concat(Encoding.ASCII.GetBytes("<NOD<END")).ToArray(),
                 932,
-
                 "#\\x92N\\x82\\xA9", "の通信が聞こえる…<NOD<END"
                 ),
 
             new LoadParseTest(
                 "#0200\r\n" +
                 "<MSG<ML+誰かの通信が聞こえる…<NOD<END",
-                Encoding.ASCII.GetBytes("#0200\r\n<MSG<ML+\\x92N\\x82\\xA9").Concat(new byte[]{
-                    0x82, 0xCC, //の
-                    0x92, 0xCA, //通
-                    0x90, 0x4D, //信
-                    0x82, 0xAA, //が
-                    0x95, 0xB7, //聞
-                    0x82, 0xB1, //こ
-                    0x82, 0xA6, //え
-                    0x82, 0xE9, //る
-                    0x81, 0x63  //…
-                }).Concat(Encoding.ASCII.GetBytes("<NOD<END")).ToArray(),
                 932,
 
                 "#0200","\r","\n",
                 "<MSG","<ML+","\\x92N\\x82\\xA9","の通信が聞こえる…","<NOD","<END"
+                ),
+
+            new LoadParseTest(
+                "#0200\r\n" +
+                "<END\r\n" +
+                "this is\r\n" +
+                "a bunch\r" +
+                "of text\n",
+
+                "#0200","\r","\n",
+                "<END","\r\n",
+                "this is\r\n",
+                "a bunch\r",
+                "of text\n"
                 )
         };
-
-        public static IEnumerable<object[]> LoadOkSharedTests()
-        {
-            foreach (var test in LoadParseTests)
-                yield return new object[] { test.Encoding.GetBytes(test.Input), test.Data, test.Encoding };
-        }
-
-        static FieldInfo TSCbuffer = typeof(TSCEditor).GetField("TSCbuffer", BindingFlags.NonPublic | BindingFlags.Instance);
-
-        [Theory]
-        [MemberData(nameof(LoadOkSharedTests))]
-        public void LoadOk(byte[] data, byte[] expected, Encoding encoding)
-        {
-            TSCEditor editor = new TSCEditor(data, false, encoding);
-            var buf = ((LinkedList<byte>)TSCbuffer.GetValue(editor)).ToArray();
-            output.WriteLine("Input:\n" + editor.TextEncoding.GetString(data));
-            output.WriteLine("Expected:\n" + editor.TextEncoding.GetString(expected));
-            output.WriteLine("Actual:\n" + editor.TextEncoding.GetString(buf));
-            Assert.Equal(expected, buf);
-        }
-
         
-        public static IEnumerable<object?[]> ParseOkSharedTests()
-        {
-            foreach (var test in LoadParseTests)
-                yield return new object?[] { test.Data, test.Tokens, test.Encoding, test.Commands };
-        }
+        //TODO convert these to tests for the editing functions
         public static IEnumerable<object?[]> ParseOkTests()
         {
-            object?[] GenTest(string data, params string[] tokens)
+            static object?[] GenTest(string data, params string[] tokens)
             {
                 var b = Encoding.ASCII.GetBytes(data);
                 if (tokens.Length == 0)
@@ -475,41 +435,21 @@ namespace CaveStoryModdingFrameworkTests
             yield return GenTest("#\\xX0000\r\n","#\\xX0","000\r", "\n");
 
         }
-
-        //static MethodInfo AppendToBuffer = typeof(TSCEditor).GetMethod("AppendToBuffer", BindingFlags.NonPublic | BindingFlags.Instance);
-        
-        static MethodInfo Parse = typeof(TSCEditor).GetMethod("Parse", BindingFlags.NonPublic | BindingFlags.Instance);
-
-        [Theory]
-        [MemberData(nameof(ParseOkSharedTests))]
-        [MemberData(nameof(ParseOkTests))]
-        public void ParseOk(byte[] data, string[] tokens, Encoding encoding, List<Command>? commands)
-        {
-            var editor = new TSCEditor(encoding, commands);
-            TSCbuffer.SetValue(editor, new LinkedList<byte>(data));
-            //AppendToBuffer.Invoke(editor, new object[] { data });
-            
-            Parse.Invoke(editor, new object[] { 0 });
-
-            checkTokens(editor.Tokens, tokens);
-        }
-
-
-        public static IEnumerable<object?[]> LoadAndParseOkTests()
+        public static IEnumerable<object?[]> LoadOkTests()
         {
             foreach (var test in LoadParseTests)
-                yield return new object?[] { test.Input, test.Tokens, test.Encoding, test.Commands };
+                yield return new object?[] { test.Data, test.Tokens, test.Encoding, test.Commands };
         }
 
         [Theory]
-        [MemberData(nameof(LoadAndParseOkTests))]
-        public void LoadAndParseOK(string data, string[] tokens, Encoding encoding, List<Command>? commands)
+        [MemberData(nameof(LoadOkTests))]
+        public void LoadOK(byte[] data, string[] tokens, Encoding encoding, List<Command>? commands)
         {
-            var editor = new TSCEditor(encoding.GetBytes(data), false, encoding, commands);
-            checkTokens(editor.Tokens, tokens);
+            var editor = new TSCEditor(data, false, encoding, commands);
+            checkTokens(editor.Lines, tokens);
         }
 
-        void checkTokens(List<List<TSCToken>> tokens, string[] expected)
+        void checkTokens(IList<TSCTokenLine> tokens, string[] expected)
         {
             bool Ok = true;
             int i = 0;
@@ -517,10 +457,15 @@ namespace CaveStoryModdingFrameworkTests
             {
                 foreach (var token in line)
                 {
-                    var s = token.GetString();
+                    var s = token.Text;
                     try
                     {
                         Assert.Equal(expected[i], s);
+                    }
+                    catch(IndexOutOfRangeException oor)
+                    {
+                        Ok = false;
+                        output.WriteLine("Something's wrong with the number of tokens I think???");
                     }
                     catch (Xunit.Sdk.EqualException ee)
                     {
@@ -533,21 +478,69 @@ namespace CaveStoryModdingFrameworkTests
             Assert.True(Ok);
         }
 
+
+        public static IEnumerable<object[]> ReplaceTests
+        {
+            get
+            {
+                static object[] GenTest(string data, Encoding encoding, int offset, int length, string replacementText, string expected)
+                {
+                    return new object[] {encoding.GetBytes(data), encoding, offset, length, replacementText, expected };
+                }
+
+                yield return GenTest("", Encoding.ASCII, 0, 0, "", "");
+
+                yield return GenTest("#0200", Encoding.ASCII, 2, 1, "1", "#0100");
+
+                yield return GenTest("#0200", Encoding.ASCII, 1, 4, "4321", "#4321");
+
+                yield return GenTest("#0200\r\n<MSGHello, World!<NOD<END", Encoding.ASCII, 11, 5, "Goodbye", "#0200\r\n<MSGGoodbye, World!<NOD<END");
+
+                yield return GenTest("#0200\r\n<END", Encoding.ASCII, 7, 0, "<MSGHello, World!<NOD", "#0200\r\n<MSGHello, World!<NOD<END");
+
+                yield return GenTest("#0200\r\n<MSGWoah\r\nThree\r\nLines!<NOD<END\r\n", Encoding.ASCII, 17, 7, "Two ", "#0200\r\n<MSGWoah\r\nTwo Lines!<NOD<END\r\n");
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(ReplaceTests))]
+        public void ReplaceOk(byte[] data, Encoding encoding, int offset, int length, string replacementText, string expected)
+        {
+            var editor = new TSCEditor(data, false, encoding);
+            
+            editor.Replace(offset, length, replacementText);
+            
+            var ms = new MemoryStream();
+            editor.Save(ms);
+
+            try
+            {
+                Assert.Equal(encoding.GetBytes(expected), ms.ToArray());
+            }
+            catch (EqualException)
+            {
+                output.WriteLine("Expected: \"" + expected + "\"");
+                output.WriteLine("Actual: \"" + encoding.GetString(ms.ToArray()) + "\"");
+                throw;
+            }
+            
+        }
+
+
         public static IEnumerable<object[]> SaveOkTests()
         {
             foreach (var test in LoadParseTests)
-                yield return new object[] { test.Input, test.Encoding };
+                yield return new object[] { test.Data, test.Encoding };
         }
         
         [Theory]
         [MemberData(nameof(SaveOkTests))]
-        public void SaveOk(string data, Encoding encoding)
+        public void SaveOk(byte[] data, Encoding encoding)
         {
-            var fd = encoding.GetBytes(data);
-            var editor = new TSCEditor(fd, false, encoding);
+            var editor = new TSCEditor(data, false, encoding);
             var ms = new MemoryStream();
             editor.Save(ms);
-            Assert.Equal(fd, ms.ToArray());
+            Assert.Equal(data, ms.ToArray());
         }
     }
 }
