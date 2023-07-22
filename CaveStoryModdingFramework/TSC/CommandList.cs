@@ -133,7 +133,7 @@ namespace CaveStoryModdingFramework.TSC
                 new Argument("Operation", 1, ArgumentTypes.Number,""), //TODO use a local enum for this
                 new Argument("Value", ArgumentTypes.Number,"")
                 ){ Author = "Noxid" },
-            new Command("VAJ", "VAriable Jump", "Compare X to W using method Y, if true jump to Z", ArgumentTypes.Number, ArgumentTypes.Number, ArgumentTypes.Number, ArgumentTypes.Event){ Author = "Noxid" },
+            new Command("VAJ", "VAriable Jump", "Compare X to W using method Y, if true jump to Z",ArgumentTypes.Number, ArgumentTypes.Number, ArgumentTypes.Number, ArgumentTypes.Event){ Author = "Noxid" },
             new Command("RND", "RaNdoM", "Puts random # between W (min) and X (max) into variable Y", ArgumentTypes.Number, ArgumentTypes.Number, ArgumentTypes.Number){ Author = "Noxid" },
             new Command("IMG", "tIMaGe", "Will set TimgFILE.bmp over the screen. The \"tag\" for the file name must be exactly 4 characters", ArgumentTypes.ASCII){ Author = "Noxid" },
             //commision for Voidmage_Lowell
@@ -150,7 +150,9 @@ namespace CaveStoryModdingFramework.TSC
             new Command("SEL", "SELl", "Earn X amount of money", ArgumentTypes.Number){ Author = "BLink" },
             new Command("BBP", "Big BumP", "Bump the player in the direction X, with Y upward force", ArgumentTypes.Direction, ArgumentTypes.Number){ Author = "Carrotlord" },
 
-            new Command("MOD", "MODify", "Weird thing for Enlight's Equip Plus hack", ArgumentTypes.Event,
+            //Part of Enlight's Equip+
+            new Command("MOD", "MODify", "Sets modifier XXXX to the 12 digit condition",
+                ArgumentTypes.Number, //TODO use local enum
                 new Argument("Is Invincible", 1, ""),
                 new Argument("Is Underwater", 1, ""),
                 new Argument("Is on Ground", 1, ""),
@@ -160,10 +162,15 @@ namespace CaveStoryModdingFramework.TSC
                 new Argument("At Max HP", 1, ""),
                 new Argument("At Full Ammo", 1, ""),
                 new Argument("At Max XP", 1, ""),
-                new Argument("HP Above Threshold", 1, ""),
+                new Argument("HP ??? Threshold", 1, ""),
                 new Argument("In Range of Curly", 1, ""),
                 new Argument("(Reserved)", 1, "")
-                ),
+                ){ Author = "Enlight" },
+            new Command("EQC", "EQuip Configure", "Sets the EQC ID \"X\" to the value Y. Only numbers [0,127] are supported " +
+                "(except for timestop/freezing, which support -1 to disable)",
+                new Argument(ArgumentTypes.Number), //TODO use local enum
+                new Argument(ArgumentTypes.Number)){ Author = "Enlight" },
+
             new Command("RNJ", "RaNdom Jump", "Jumps to a random event from the list of W supplied arguments", CommandProperties.EndsEvent, "Event count", new RepeatStructure(RepeatTypes.GlobalIndex, 0, ArgumentTypes.Event)){ Author = "bigbadwoof, BLink" },
             new Command("RNJ", "RaNdom Jump", "Jumps to a random event between W and X (inclusive)", CommandProperties.EndsEvent, ArgumentTypes.Event, ArgumentTypes.Event){ Author = "Cyber" },
             new Command("CNV", "Change Npc Variable", "Change variable X of the NPC with event W to the value Y", ArgumentTypes.NPCEvent, ArgumentTypes.Number, ArgumentTypes.Number){ Author = "Cyber" },
@@ -180,6 +187,92 @@ namespace CaveStoryModdingFramework.TSC
             new Command("CEX", "Create EXplosion", "Create an epxlosion",
                 new Argument(ArgumentTypes.XCoord, ""), new Argument(ArgumentTypes.YCoord,""), new Argument(ArgumentTypes.Direction, "")){ Author = "Txin" },
             new Command("TXC", "TeXt Colour", "Set the text colour to the integer value X", new Argument("Colour", 8, ArgumentTypes.Number)){ Author = "Txin" },
+
+            new Command("BKG", "BacKGround", "The one and only background hack",
+                new Argument("Slot number"),
+                new Argument("L_framerect"),
+                new Argument("U_framerect"),
+                new Argument("X size"),
+                new Argument("Y size"),
+                new Argument("X repeat"),
+                new Argument("Y repeat"),
+                new Argument("X distance"),
+                new Argument("Y distance"),
+                    //0 = fixed
+                    //1 = horizontal move with char/camera
+                    //2 = vertical move with char/camera
+                    //4 = horizontal move with timer
+                    //8 = vertical move with timer
+                    //16 = scroll with char's direction instead of away
+                new Argument("Scroll type"),
+                new Argument("Scroll speed X"),
+                new Argument("Scroll speed Y"),
+                new Argument("Animation sprites"),
+                new Argument("Animation speed"),
+                new Argument("X_offset"),
+                new Argument("Y_offset")
+                ){ Author = "BLink" },
+
+            //Part of Bionicobot's TSC extensions
+            new Command("CTS", "Change TileSet", "Sets the current tileset to PrtX.bmp",
+                new Argument("Tileset name", -1, ArgumentTypes.ASCII, ";")){ Author = "Bionicobot" },
+            new Command("CBK", "Change BacKground", "Sets the current background to bkX.bmp in follow slowly mode",
+                new Argument("Background name", -1, ArgumentTypes.ASCII, ";")){ Author = "Bionicobot" },
+            new Command("SET", "SET variable", "Checks for dat.bin, which stores a single value, and if it exists, jumps to event ####",
+                new Argument()){ Author = "Bionicobot" }, //TODO what arg type is this
+            new Command("SMN", "Set My Number", "Sets the value held by dat.bin to ####",
+                new Argument()){ Author = "Bionicobot" }, //TODO what arg type is this
+            new Command("JMN", "Set My Number", "Gets the number held by dat.bin, adds 300 to it, and then jumps to that event.",
+                CommandProperties.EndsEvent){ Author = "Bionicobot" },
+            new Command("VAS", "VAriable Set", "Puts variable value/number nBBB into variable vAAA",
+                new Argument(ArgumentTypes.Number),
+                new Argument(ArgumentTypes.Number)){ Author = "Bionicobot" },
+            new Command("VCV", "Variable Clear Variables", "Clears #### variables starting at vAAA",
+                new Argument(ArgumentTypes.Number),
+                new Argument(ArgumentTypes.Number)){ Author = "Bionicobot" },
+            new Command("VCJ", "Variable Compare Jump", "Compares nAAA to nBBB using comparator COMP and jumps to event CCCC if it returns true",
+                new Argument(ArgumentTypes.Number),
+                new Argument(),
+                new Argument(ArgumentTypes.Number),
+                new Argument(ArgumentTypes.Event)){ Author = "Bionicobot" },
+            new Command("VPF", "Variable Perform Function", "nAAA has FUNC applied to it using nBBB and is stored in variable vCCC",
+                new Argument(ArgumentTypes.Number),
+                new Argument(),
+                new Argument(ArgumentTypes.Number),
+                new Argument(ArgumentTypes.Event)){ Author = "Bionicobot" },
+            new Command("VAD", "VAriable Display", "Displays the value of nAAA",
+                new Argument(ArgumentTypes.Number)){ Author = "Bionicobot" },
+            new Command("RTB", "???", "Used internally by VAD, could cause crashes"){ Author = "Bionicobot" },
+            new Command("RND", "RaNDom variable", "Puts a random numder between [###1,###2] into variable vAAA",
+                new Argument(ArgumentTypes.Number),
+                new Argument(ArgumentTypes.Number),
+                new Argument(ArgumentTypes.Number)){ Author = "Bionicobot" },
+            new Command("SEF", "Set EFfect", "Creates effect with type CCCC and mode DDDD, using method METH with parameters AAAA and BBBB",
+                new Argument(ArgumentTypes.Number),
+                new Argument(ArgumentTypes.Number),
+                new Argument(ArgumentTypes.Number),
+                new Argument(ArgumentTypes.Number)){ Author = "Bionicobot" },
+            new Command("SEV", "Set Entity Velocity", "Gives entity nAAA x velocity NBBB and y velocity NCCC",
+                new Argument(ArgumentTypes.NPCEvent),
+                new Argument(ArgumentTypes.Number),
+                new Argument(ArgumentTypes.Number)){ Author = "Bionicobot" },
+            new Command("SPV", "Set Player Velocity", "Gives the player x velocity NAAA and y velocity NBBB",
+                new Argument(ArgumentTypes.Number),
+                new Argument(ArgumentTypes.Number)){ Author = "Bionicobot" },
+            new Command("BKG", "BacKGround", "Same as BLink's BKG, but it loads parameters from the provided file (0 resets)",
+                new Argument(ArgumentTypes.ASCII)),
+
+            //Part of JakeV's mod engine
+            new Command("ATT", "Animate Tile Texture", "Sets tile X to cycle through the next Y tiles using Z frame intervals",
+                new Argument("Tile number"),
+                new Argument("Textures"),
+                new Argument("Wait time")){ Author = "JakeV" },
+            new Command("BKG", "BacKGround (simplified)", "A simplified/stack-based version of the background hack",
+                new Argument("X camera scroll speed"),
+                new Argument("Y camera scroll speed"),
+                new Argument("X scroll speed"),
+                new Argument("Y scroll speed"),
+                new Argument("Image name", -1, ArgumentTypes.ASCII, "$")){ Author = "JakeV" }
         };
     }
 }
