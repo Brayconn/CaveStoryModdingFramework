@@ -149,6 +149,10 @@ namespace CaveStoryModdingFramework
             else
                 return -1;
         }
+        public override string ToString()
+        {
+            return $"{a},{b},{c},{d}";
+        }
     }
     
     public class ByteRectTypeConverter : ExpandableObjectConverter
