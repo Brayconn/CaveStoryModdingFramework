@@ -346,6 +346,7 @@ namespace CaveStoryModdingFrameworkTests
                     pf.Layouts.Add(layout);
 
                     //Add other mods?
+                    //TODO this check doesn't work for eshop, might want to remove?
                     if(firstDataPath != baseDataPath)
                     {
                         bool SubAdd(string curr)
